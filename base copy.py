@@ -21,6 +21,7 @@ model = YOLO(model_path)
 
 def detect_and_count_persons(frame):
     results = model(frame)
+    # results = model.predict(frame, classes=[0], conf=0.5)
     persons = 0
 
 
