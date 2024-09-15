@@ -1,10 +1,23 @@
 import cv2
 from ultralytics import YOLO
+import os
 
 #TODO: use GUI PYQT
 #TODO: use openvino super fast implementation of yolo
 
-model = YOLO('yolov8n.pt')
+import urllib.request
+
+model_path = 'Model/yolov8n.pt'
+
+if not os.path.exists(model_path):
+    print("Downloading YOLO model...")
+    url = 'https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8n.pt'
+    urllib.request.urlretrieve(url, model_path)
+    print("Download complete.")
+else :
+    print("Model already exists. ok")
+
+model = YOLO(model_path)
 
 def detect_and_count_persons(frame):
     results = model(frame)
