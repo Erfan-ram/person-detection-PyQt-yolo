@@ -1,6 +1,9 @@
 import cv2
 from ultralytics import YOLO
 
+#TODO: use GUI PYQT
+#TODO: use openvino super fast implementation of yolo
+
 model = YOLO('yolov8n.pt')
 
 def detect_and_count_persons(frame):
@@ -22,11 +25,10 @@ def detect_and_count_persons(frame):
     cv2.putText(frame, f'Persons: {persons}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
     return frame, persons
 
-cap = cv2.VideoCapture(0)  # Use 0 for default webcam
+cap = cv2.VideoCapture(0)
 # input_shape = (640, 640)
-output_shape = (1280, 720)
-# cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
-# cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
+# output_shape = (1280, 720)
+
 cap.set(cv2.CAP_PROP_FPS, 30)
 
 if not cap.isOpened():
@@ -39,9 +41,7 @@ while True:
         print("Error: Failed to capture frame.")
         break
 
-    # frame = cv2.resize(frame, input_shape)
     frame, persons = detect_and_count_persons(frame)
-    # frame = cv2.resize(frame, output_shape)
 
     cv2.imshow('YOLOv8', frame)
 
