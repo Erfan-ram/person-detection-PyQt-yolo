@@ -6,6 +6,7 @@ import urllib.request
 from PyQt6.QtCore import QThread, pyqtSignal, Qt
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel
 from PyQt6.QtGui import QPixmap, QImage
+import subprocess
 
 model_path = 'Model/yolov8n.pt'
 
@@ -45,7 +46,9 @@ class VideoThread(QThread):
         self._run_flag = True
 
     def run(self):
-        cap = cv2.VideoCapture(0)
+        cam_availabe = self.cam_available()
+        print(f"Available cameras: {cam_availabe}")
+        cap = cv2.VideoCapture("/dev/video1")
         cap.set(cv2.CAP_PROP_FPS, 30)
 
         while self._run_flag:
@@ -65,6 +68,31 @@ class VideoThread(QThread):
     def stop(self):
         self._run_flag = False
         # self.wait()
+        
+    def cam_available(self):
+        try:
+            result = subprocess.run(['v4l2-ctl', '--list-devices'], capture_output=True, text=True)
+            if result.returncode == 0:
+                output = result.stdout
+                lines = output.split('\n')
+                cameras = {}
+                camera_name = None
+                
+                for i, line in enumerate(lines):
+                    # print(i, line)
+                    if "usb-" in line:
+                        camera_name = lines[i].strip()
+                        camera_name = camera_name[:(line.index('usb-') - 1)]
+                        address = lines[i+1].strip()
+                        cameras[camera_name] = address
+                
+                return cameras
+            else:
+                print("Error running v4l2-ctl")
+                return {}
+        except Exception as e:
+            print(f"Exception occurred: {e}")
+            return {}
 
 class MainWindow(QWidget):
     def __init__(self):
