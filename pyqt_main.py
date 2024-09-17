@@ -3,10 +3,11 @@ from ultralytics import YOLO
 import os
 import sys
 import urllib.request
-from PyQt6.QtCore import QThread, pyqtSignal, Qt
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel
+from PyQt6.QtCore import QThread, pyqtSignal, Qt , QTimer
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel , QComboBox
 from PyQt6.QtGui import QPixmap, QImage
 import subprocess
+from PyQt6.QtWidgets import QMessageBox
 
 model_path = 'Model/yolov8n.pt'
 
@@ -38,16 +39,73 @@ def detect_and_count_persons(frame):
     cv2.putText(frame, f'Persons: {persons}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
     return frame, persons
 
+class CameraChecker:
+    def __init__(self, combo_obj: QComboBox):
+        self.cameras = {}
+        self.combo_obj = combo_obj
+
+    def cam_available(self):     
+        try:
+            result = subprocess.run(['v4l2-ctl', '--list-devices'], capture_output=True, text=True)
+            if result.returncode == 0:
+                output = result.stdout
+                lines = output.split('\n')
+                new_cameras = {}
+                camera_name = None
+                
+                for i, line in enumerate(lines):
+                    # print(i, line)
+                    if "usb-" in line:
+                        camera_name = lines[i].strip()
+                        camera_name = camera_name[:(line.index('usb-') - 1)]
+                        address = lines[i+1].strip()
+                        new_cameras[camera_name] = address
+                        
+                # print(f"Cameras: {new_cameras}")
+                        
+                for camera in new_cameras.keys():
+                    if camera not in self.cameras:
+                        # print(f"New camera detected: {camera}")
+                        msg = QMessageBox()
+                        msg.setIcon(QMessageBox.Icon.Information)
+                        msg.setText(f"New camera detected: {camera}")
+                        msg.setWindowTitle("Camera Detection")
+                        msg.exec()
+                        self.combo_obj.addItem(camera)
+                        
+                for camera in self.cameras.keys():
+                    if camera not in new_cameras:
+                        # print(f"Camera removed: {camera}")
+                        self.combo_obj.removeItem(self.combo_obj.findText(camera))
+                        
+                self.cameras = new_cameras.copy()
+                
+            else:
+                print("Error running v4l2-ctl")
+                self.cameras = {}
+        except Exception as e:
+            print(f"Exception occurred: {e}")
+            self.cameras = {}
+            
+    def start_(self):
+                self.timer = QTimer()
+                self.timer.timeout.connect(self.cam_available)
+                self.timer.start(1000)
+            
+    def get_cameras(self):
+        return self.cameras
+        
 class VideoThread(QThread):
     change_pixmap_signal = pyqtSignal(QImage)
 
-    def __init__(self):
+    def __init__(self, camera_checker):
         super().__init__()
         self._run_flag = True
+        self.camera_checker = camera_checker
 
     def run(self):
-        cam_availabe = self.cam_available()
-        print(f"Available cameras: {cam_availabe}")
+        # cam_availabe = self.camera_checker.get_cameras()
+        # print(f"Available cameras: {cam_availabe}")
         cap = cv2.VideoCapture("/dev/video1")
         cap.set(cv2.CAP_PROP_FPS, 30)
 
@@ -69,30 +127,6 @@ class VideoThread(QThread):
         self._run_flag = False
         # self.wait()
         
-    def cam_available(self):
-        try:
-            result = subprocess.run(['v4l2-ctl', '--list-devices'], capture_output=True, text=True)
-            if result.returncode == 0:
-                output = result.stdout
-                lines = output.split('\n')
-                cameras = {}
-                camera_name = None
-                
-                for i, line in enumerate(lines):
-                    # print(i, line)
-                    if "usb-" in line:
-                        camera_name = lines[i].strip()
-                        camera_name = camera_name[:(line.index('usb-') - 1)]
-                        address = lines[i+1].strip()
-                        cameras[camera_name] = address
-                
-                return cameras
-            else:
-                print("Error running v4l2-ctl")
-                return {}
-        except Exception as e:
-            print(f"Exception occurred: {e}")
-            return {}
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -106,7 +140,10 @@ class MainWindow(QWidget):
         self.image_label = QLabel(self)
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.image_label)
-
+        
+        self.combo = QComboBox(self)
+        layout.addWidget(self.combo)
+        
         self.start_button = QPushButton("Start Camera")
         self.start_button.clicked.connect(self.start_camera)
         layout.addWidget(self.start_button)
@@ -118,10 +155,12 @@ class MainWindow(QWidget):
         self.setLayout(layout)
 
         self.thread = None
+        self.camera_checker = CameraChecker(self.combo)
+        self.camera_checker.start_()
 
     def start_camera(self):
         if self.thread is None or not self.thread.isRunning():
-            self.thread = VideoThread()
+            self.thread = VideoThread(self.camera_checker)
             self.thread.change_pixmap_signal.connect(self.update_image)
             self.thread.start()
 
