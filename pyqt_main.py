@@ -8,7 +8,6 @@ from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLa
 from PyQt6.QtGui import QPixmap, QImage
 import subprocess
 from PyQt6.QtWidgets import QMessageBox
-import numpy as np
 
 model_path = 'Model/yolov8n.pt'
 
@@ -38,7 +37,8 @@ def draw_rounded_rectangle(img, top_left, bottom_right, color, thickness, radius
     cv2.addWeighted(overlay, 0.4, img, 0.6, 0, img)
 
 def detect_and_count_persons(frame):
-    results = model(frame)
+    # results = model(frame)
+    results = model.predict(frame, classes=[0], conf=0.6)
     persons = 0
 
     for result in results[0].boxes:
