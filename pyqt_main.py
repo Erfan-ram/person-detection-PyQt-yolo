@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLa
 from PyQt6.QtGui import QPixmap, QImage
 import subprocess
 from PyQt6.QtWidgets import QMessageBox
+import numpy as np
 
 model_path = 'Model/yolov8n.pt'
 
@@ -21,6 +22,21 @@ else:
 
 model = YOLO(model_path)
 
+def draw_rounded_rectangle(img, top_left, bottom_right, color, thickness, radius=50):
+    x1, y1 = top_left
+    x2, y2 = bottom_right
+    overlay = img.copy()
+    edje_color = (0, 0, 255)
+    
+    cv2.rectangle(overlay, (x1 + radius, y1), (x2 - radius, y2), color, -1)
+    cv2.rectangle(overlay, (x1, y1 + radius), (x2, y2 - radius), color, -1)
+    cv2.circle(overlay, (x1 + radius, y1 + radius), radius, edje_color, -1)
+    cv2.circle(overlay, (x2 - radius, y1 + radius), radius, edje_color, -1)
+    cv2.circle(overlay, (x1 + radius, y2 - radius), radius, edje_color, -1)
+    cv2.circle(overlay, (x2 - radius, y2 - radius), radius, edje_color, -1)
+
+    cv2.addWeighted(overlay, 0.4, img, 0.6, 0, img)
+
 def detect_and_count_persons(frame):
     results = model(frame)
     persons = 0
@@ -32,12 +48,42 @@ def detect_and_count_persons(frame):
             persons += 1
             box = result.xyxy[0].cpu().numpy().astype(int)
             x1, y1, x2, y2 = box
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            cv2.putText(frame, 'Person', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
-            cv2.putText(frame, 'conf: ' + str(round(conf, 2)), (x1 + 20, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
+            
+            color = (0, 200, 0)
+            thickness = 1
+            
+            draw_rounded_rectangle(frame, (x1, y1), (x2, y2), color, thickness, radius=10)
+
+            label = f'Person: {round(conf, 2)}'
+            label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+            label_w, label_h = label_size
+            
+            label_bg_top_left = (x1, y1 - label_h - 10)
+            label_bg_bottom_right = (x1 + label_w, y1)
+            cv2.rectangle(frame, label_bg_top_left, label_bg_bottom_right, (0, 255, 0), cv2.FILLED)
+            cv2.putText(frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
     
     cv2.putText(frame, f'Persons: {persons}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+
     return frame, persons
+
+# def detect_and_count_persons(frame):
+#     results = model(frame)
+#     persons = 0
+
+#     for result in results[0].boxes:
+#         cls = int(result.cls[0])
+#         conf = float(result.conf[0].cpu().numpy())
+#         if cls == 0:
+#             persons += 1
+#             box = result.xyxy[0].cpu().numpy().astype(int)
+#             x1, y1, x2, y2 = box
+#             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+#             cv2.putText(frame, 'Person', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
+#             cv2.putText(frame, 'conf: ' + str(round(conf, 2)), (x1 + 20, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
+    
+#     cv2.putText(frame, f'Persons: {persons}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+#     return frame, persons
 
 class CameraChecker:
     def __init__(self, combo_obj: QComboBox):
