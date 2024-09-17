@@ -1,8 +1,8 @@
 import cv2
-from ultralytics import YOLO
 import os
 import sys
 import urllib.request
+from ultralytics import YOLO
 from PyQt6.QtCore import QThread, pyqtSignal, Qt , QTimer
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel , QComboBox
 from PyQt6.QtGui import QPixmap, QImage
@@ -106,28 +106,38 @@ class VideoThread(QThread):
         self.camera_obj = camera_obj
 
     def run(self):
-        # cam_availabe = self.camera_checker.get_cameras()
-        # print(f"Available cameras: {cam_availabe}")
-        option_slected = self.combo_obj.currentText()
-        address = self.camera_obj.get_cameras()[option_slected]
-        cap = cv2.VideoCapture(address)
-        cap.set(cv2.CAP_PROP_FPS, 30)
+        try:
+            # cam_availabe = self.camera_checker.get_cameras()
+            # print(f"Available cameras: {cam_availabe}")
+            option_selected = self.combo_obj.currentText()
+            address = self.camera_obj.get_cameras().get(option_selected)
+            if address is None:
+                raise ValueError(f"No address found for the selected camera: {option_selected}")
 
-        while self._run_flag:
-            ret, frame = cap.read()
-            if ret:
-                frame, persons = detect_and_count_persons(frame)
+            cap = cv2.VideoCapture(address)
+            cap.set(cv2.CAP_PROP_FPS, 30)
 
-                rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                h, w, ch = rgb_image.shape
-                bytes_per_line = ch * w
-                qt_image = QImage(
-                    rgb_image.data, w, h, bytes_per_line, QImage.Format.Format_RGB888
-                )
+            while self._run_flag:
+                ret, frame = cap.read()
+                if ret:
+                    frame, persons = detect_and_count_persons(frame)
 
-                self.change_pixmap_signal.emit(qt_image)
+                    rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    h, w, ch = rgb_image.shape
+                    bytes_per_line = ch * w
+                    qt_image = QImage(
+                        rgb_image.data, w, h, bytes_per_line, QImage.Format.Format_RGB888
+                    )
 
-        cap.release()
+                    self.change_pixmap_signal.emit(qt_image)
+                else:
+                    print("Failed to read frame from camera.")
+                    break
+
+            cap.release()
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            cap.release()
 
     def stop(self):
         self._run_flag = False
