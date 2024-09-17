@@ -52,17 +52,17 @@ class CameraChecker:
                 lines = output.split('\n')
                 new_cameras = {}
                 camera_name = None
-                
+
                 for i, line in enumerate(lines):
                     # print(i, line)
                     if "usb-" in line:
                         camera_name = lines[i].strip()
-                        camera_name = camera_name[:(line.index('usb-') - 1)]
+                        # camera_name = camera_name[:(line.index('usb-') - 1)]
                         address = lines[i+1].strip()
                         new_cameras[camera_name] = address
-                        
+
                 # print(f"Cameras: {new_cameras}")
-                        
+
                 for camera in new_cameras.keys():
                     if camera not in self.cameras:
                         # print(f"New camera detected: {camera}")
@@ -72,41 +72,45 @@ class CameraChecker:
                         msg.setWindowTitle("Camera Detection")
                         msg.exec()
                         self.combo_obj.addItem(camera)
-                        
+
                 for camera in self.cameras.keys():
                     if camera not in new_cameras:
                         # print(f"Camera removed: {camera}")
                         self.combo_obj.removeItem(self.combo_obj.findText(camera))
-                        
+
                 self.cameras = new_cameras.copy()
-                
+
             else:
                 print("Error running v4l2-ctl")
                 self.cameras = {}
         except Exception as e:
             print(f"Exception occurred: {e}")
             self.cameras = {}
-            
+
     def start_(self):
-                self.timer = QTimer()
-                self.timer.timeout.connect(self.cam_available)
-                self.timer.start(1000)
-            
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.cam_available)
+        self.timer.start(1000)
+
     def get_cameras(self):
         return self.cameras
-        
+
+
 class VideoThread(QThread):
     change_pixmap_signal = pyqtSignal(QImage)
 
-    def __init__(self, camera_checker):
+    def __init__(self, combo_obj: QComboBox, camera_obj: CameraChecker):
         super().__init__()
         self._run_flag = True
-        self.camera_checker = camera_checker
+        self.combo_obj = combo_obj
+        self.camera_obj = camera_obj
 
     def run(self):
         # cam_availabe = self.camera_checker.get_cameras()
         # print(f"Available cameras: {cam_availabe}")
-        cap = cv2.VideoCapture("/dev/video1")
+        option_slected = self.combo_obj.currentText()
+        address = self.camera_obj.get_cameras()[option_slected]
+        cap = cv2.VideoCapture(address)
         cap.set(cv2.CAP_PROP_FPS, 30)
 
         while self._run_flag:
@@ -117,8 +121,10 @@ class VideoThread(QThread):
                 rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 h, w, ch = rgb_image.shape
                 bytes_per_line = ch * w
-                qt_image = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
-                
+                qt_image = QImage(
+                    rgb_image.data, w, h, bytes_per_line, QImage.Format.Format_RGB888
+                )
+
                 self.change_pixmap_signal.emit(qt_image)
 
         cap.release()
@@ -126,7 +132,7 @@ class VideoThread(QThread):
     def stop(self):
         self._run_flag = False
         # self.wait()
-        
+
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -140,10 +146,10 @@ class MainWindow(QWidget):
         self.image_label = QLabel(self)
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.image_label)
-        
+
         self.combo = QComboBox(self)
         layout.addWidget(self.combo)
-        
+
         self.start_button = QPushButton("Start Camera")
         self.start_button.clicked.connect(self.start_camera)
         layout.addWidget(self.start_button)
@@ -160,7 +166,7 @@ class MainWindow(QWidget):
 
     def start_camera(self):
         if self.thread is None or not self.thread.isRunning():
-            self.thread = VideoThread(self.camera_checker)
+            self.thread = VideoThread(self.combo , self.camera_checker)
             self.thread.change_pixmap_signal.connect(self.update_image)
             self.thread.start()
 
@@ -170,6 +176,7 @@ class MainWindow(QWidget):
 
     def update_image(self, qt_image):
         self.image_label.setPixmap(QPixmap.fromImage(qt_image))
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
