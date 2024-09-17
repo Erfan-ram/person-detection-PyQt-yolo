@@ -20,6 +20,8 @@ else:
     print("Model already exists.")
 
 model = YOLO(model_path)
+fmodel = YOLO("Model/face_yolov8n.pt")
+
 
 def draw_rounded_rectangle(img, top_left, bottom_right, color, thickness, radius=50):
     x1, y1 = top_left
@@ -62,6 +64,15 @@ def detect_and_count_persons(frame):
             label_bg_bottom_right = (x1 + label_w, y1)
             cv2.rectangle(frame, label_bg_top_left, label_bg_bottom_right, (0, 255, 0), cv2.FILLED)
             cv2.putText(frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
+            
+            # face_results = fmodel(frame[y1:y2, x1:x2])
+                # cv2.rectangle(frame, (x1 + fx1, y1 + fy1), (x1 + fx2, y1 + fy2), (0, 0, 255), 2)
+            face_results = fmodel(frame)
+            for fresult in face_results[0].boxes:
+                fbox = fresult.xyxy[0].cpu().numpy().astype(int)
+                fx1, fy1, fx2, fy2 = fbox
+                cv2.rectangle(frame, (fx1, fy1), (fx2, fy2), (0, 0, 255), 2)
+            
     
     cv2.putText(frame, f'Persons: {persons}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
