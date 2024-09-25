@@ -3,7 +3,7 @@ import os
 import sys
 import urllib.request
 from ultralytics import YOLO
-from PyQt6.QtCore import QThread, pyqtSignal, Qt , QTimer
+from PyQt6.QtCore import QThread, pyqtSignal, Qt , QTimer , QObject
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel , QComboBox
 from PyQt6.QtGui import QPixmap, QImage
 import subprocess
@@ -105,24 +105,25 @@ def detect_and_count_persons(frame):
 #     cv2.putText(frame, f'Persons: {persons}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 #     return frame, persons
 
-class telegrambot:
+# class TelegramBot(QObject):
+class TelegramBot(QThread):
     def __init__(self):
+        super().__init__()
         self.db = DBHelper()
-        self.admin_id = ['250377535']
+        self.admin_id = [250377535,0000]
 
         self.BOT_TOKEN = '7579055761:AAF5SSfCqPNXA3T4f02jZbquWefnTlMuXiM'
-        # CHANNEL_NAME = '@khabaryub'
-
         self.bot = AsyncTeleBot(self.BOT_TOKEN)
         self.setup_handlers()
 
     def setup_handlers(self):
         @self.bot.message_handler(commands=['help', 'start'])
         async def send_welcome(message):
-            text = 'hello babe!'
+            text = 'Hello, babe!'
             await self.bot.reply_to(message, text)
 
-        @self.bot.message_handler(func=lambda message: True)
+        # @self.bot.message_handler(func=lambda message: True)
+        @self.bot.message_handler(func=lambda message:int(message.chat.id) not in self.admin_id)
         async def echo_message(message):
             user_name = message.from_user.first_name
             user_id = message.from_user.id
@@ -132,21 +133,57 @@ class telegrambot:
                 self.db.add_user(user_name, user_id)
                 print(f"User {user_name} added to the database.")
                 await self.bot.reply_to(message, message.text)
-                
-        @self.bot.message_handler(func=lambda message: True and message.text == 'sendtext' and message.chat.id in self.admin_id)
+
+        @self.bot.message_handler(func=lambda message: message.text == 'sendtext' and int(message.chat.id) in self.admin_id)
         async def send_text(message):
             print("Sending message to all users...")
             await self.send_message_to_all_users()
-                
-        async def send_message_to_all_users():
-            users = self.db.get_all_users()
-            for user in users:
-                user_id = user[0]
-                user_name = user[1]
-                await self.bot.send_message(user_id, f"Hello {user_name}!")
             
-    def start_(self):
+        
+        @self.bot.message_handler(func=lambda message: int(message.from_user.id) in db.get_admins())
+        async def handle_admin_command(message):
+            if message.text == 'panel':
+                await handle_admin(message)
+        async def handle_admin(message,submenu=False):
+            keyboard = InlineKeyboardMarkup()
+            keyboard.row_width = 2
+            keyboard.add(
+                InlineKeyboardButton("Get photo", callback_data="photo"),
+                InlineKeyboardButton("a key", callback_data="delete_news"),
+            )
+
+            await self.bot.reply_to(message, 'You are my admin. Choose an action:', reply_markup=keyboard)
+        
+        @self.bot.callback_query_handler(func=lambda call: True)
+        async def callback_query(call):
+            if call.data == "photo":
+                # await handle_send_news(call.message)
+                pass
+            
+    async def send_message_to_all_users(self):
+        users = self.db.get_all_users()
+        print(f"Users: {users}")
+        for user in users:
+            user_id = user[0]
+            chat = await self.bot.get_chat(user_id)
+            # print(f"Chat: {chat.bio}")
+            await self.bot.send_message(user_id, f"Hello {chat.first_name} @{chat.username}!")
+            
+        await self.bot.send_message(self.admin_id[0], "Message sent to all users.")
+
+    # def start_bot(self):
+    def run(self):
+        """This method will be run in a separate thread."""
         asyncio.run(self.bot.polling())
+
+# class BotThread(QThread):
+#     def __init__(self, bot_instance):
+#         super().__init__()
+#         self.bot_instance = bot_instance
+
+#     def run(self):
+#         """Run the bot in the separate thread."""
+#         self.bot_instance.start_bot()
 
 class CameraChecker:
     def __init__(self, combo_obj: QComboBox):
@@ -285,8 +322,12 @@ class MainWindow(QWidget):
         self.camera_checker = CameraChecker(self.combo)
         self.camera_checker.start_()
         
-        self.telegram_bot = telegrambot()
-        self.telegram_bot.start_()
+
+        self.telegram_bot = TelegramBot()
+        self.telegram_bot.start()
+
+        # self.bot_thread = BotThread(self.telegram_bot)
+        # self.bot_thread.start()
         
     def start_camera(self):
         if self.thread is None or not self.thread.isRunning():
