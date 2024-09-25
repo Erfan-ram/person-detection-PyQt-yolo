@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLa
 from PyQt6.QtGui import QPixmap, QImage
 import subprocess
 from PyQt6.QtWidgets import QMessageBox
-
+import numpy
 import asyncio
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -44,49 +44,6 @@ def draw_rounded_rectangle(img, top_left, bottom_right, color, thickness, radius
 
     cv2.addWeighted(overlay, 0.4, img, 0.6, 0, img)
 
-def detect_and_count_persons(frame):
-    # results = model(frame)
-    results = model.predict(frame, classes=[0],conf=0.2)
-    persons = 0
-
-    for result in results[0].boxes:
-        cls = int(result.cls[0])
-        conf = float(result.conf[0].cpu().numpy())
-        if cls == 0:
-            persons += 1
-            box = result.xyxy[0].cpu().numpy().astype(int)
-            x1, y1, x2, y2 = box
-            
-            color = (0, 200, 0)
-            thickness = 1
-            
-            draw_rounded_rectangle(frame, (x1, y1), (x2, y2), color, thickness, radius=10)
-
-            label = f'Person: {round(conf, 2)}'
-            label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
-            label_w, label_h = label_size
-            
-            label_bg_top_left = (x1, y1 - label_h - 10)
-            label_bg_bottom_right = (x1 + label_w, y1)
-            cv2.rectangle(frame, label_bg_top_left, label_bg_bottom_right, (0, 255, 0), cv2.FILLED)
-            cv2.putText(frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
-            
-            # face_results = fmodel(frame[y1:y2, x1:x2])
-            #     cv2.rectangle(frame, (x1 + fx1, y1 + fy1), (x1 + fx2, y1 + fy2), (0, 0, 255), 2)
-            # face_results = fmodel(frame)
-            
-            # face_results = fmodel.predict(frame, conf=0.6)
-            # # face_results = fmodel.predict(frame)
-            # for fresult in face_results[0].boxes:
-            #     fbox = fresult.xyxy[0].cpu().numpy().astype(int)
-            #     fx1, fy1, fx2, fy2 = fbox
-            #     cv2.rectangle(frame, (fx1, fy1), (fx2, fy2), (0, 0, 255), 2)
-            
-    
-    cv2.putText(frame, f'Persons: {persons}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-
-    return frame, persons
-
 # def detect_and_count_persons(frame):
 #     results = model(frame)
 #     persons = 0
@@ -107,6 +64,7 @@ def detect_and_count_persons(frame):
 
 # class TelegramBot(QObject):
 class TelegramBot(QThread):
+    send_persons_signal = pyqtSignal()
     def __init__(self):
         super().__init__()
         self.db = DBHelper()
@@ -140,7 +98,7 @@ class TelegramBot(QThread):
             await self.send_message_to_all_users()
             
         
-        @self.bot.message_handler(func=lambda message: int(message.from_user.id) in db.get_admins())
+        @self.bot.message_handler(func=lambda message: int(message.from_user.id) in self.admin_id)
         async def handle_admin_command(message):
             if message.text == 'panel':
                 await handle_admin(message)
@@ -158,8 +116,16 @@ class TelegramBot(QThread):
         async def callback_query(call):
             if call.data == "photo":
                 # await handle_send_news(call.message)
-                pass
-            
+                self.send_persons_signal.emit()
+                
+    def send_photo_to_admin(self, numpy_image: numpy.ndarray):
+        # await self.bot.send_photo(self.admin_id[0], numpy_image)
+        print("\n\n\n\nGOT AN IMAGE\n\n\n\n")
+        
+        loop = asyncio.get_event_loop()
+        loop.create_task(self.send_message_to_all_users())
+
+        
     async def send_message_to_all_users(self):
         users = self.db.get_all_users()
         print(f"Users: {users}")
@@ -212,11 +178,11 @@ class CameraChecker:
                 for camera in new_cameras.keys():
                     if camera not in self.cameras:
                         # print(f"New camera detected: {camera}")
-                        msg = QMessageBox()
-                        msg.setIcon(QMessageBox.Icon.Information)
-                        msg.setText(f"New camera detected: {camera}")
-                        msg.setWindowTitle("Camera Detection")
-                        msg.exec()
+                        # msg = QMessageBox()
+                        # msg.setIcon(QMessageBox.Icon.Information)
+                        # msg.setText(f"New camera detected: {camera}")
+                        # msg.setWindowTitle("Camera Detection")
+                        # msg.exec()
                         self.combo_obj.addItem(camera)
 
                 for camera in self.cameras.keys():
@@ -244,12 +210,65 @@ class CameraChecker:
 
 class VideoThread(QThread):
     change_pixmap_signal = pyqtSignal(QImage)
+    send_image = pyqtSignal(numpy.ndarray)
 
     def __init__(self, combo_obj: QComboBox, camera_obj: CameraChecker):
         super().__init__()
         self._run_flag = True
         self.combo_obj = combo_obj
         self.camera_obj = camera_obj
+        self.detection_list = []
+    
+    def detect_and_count_persons(self,frame):
+        # results = model(frame)
+        results = model.predict(frame, classes=[0],conf=0.2)
+        persons = 0
+        self.detection_list = []
+
+        for result in results[0].boxes:
+            cls = int(result.cls[0])
+            conf = float(result.conf[0].cpu().numpy())
+            if cls == 0:
+                persons += 1
+                box = result.xyxy[0].cpu().numpy().astype(int)
+                x1, y1, x2, y2 = box
+                
+                color = (0, 200, 0)
+                thickness = 1
+                
+                draw_rounded_rectangle(frame, (x1, y1), (x2, y2), color, thickness, radius=10)
+
+                label = f'Person: {round(conf, 2)}'
+                label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+                label_w, label_h = label_size
+                
+                label_bg_top_left = (x1, y1 - label_h - 10)
+                label_bg_bottom_right = (x1 + label_w, y1)
+                cv2.rectangle(frame, label_bg_top_left, label_bg_bottom_right, (0, 255, 0), cv2.FILLED)
+                cv2.putText(frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
+                self.detection_list.append(frame[y1:y2, x1:x2])
+                
+                # face_results = fmodel(frame[y1:y2, x1:x2])
+                #     cv2.rectangle(frame, (x1 + fx1, y1 + fy1), (x1 + fx2, y1 + fy2), (0, 0, 255), 2)
+                # face_results = fmodel(frame)
+                
+                # face_results = fmodel.predict(frame, conf=0.6)
+                # # face_results = fmodel.predict(frame)
+                # for fresult in face_results[0].boxes:
+                #     fbox = fresult.xyxy[0].cpu().numpy().astype(int)
+                #     fx1, fy1, fx2, fy2 = fbox
+                #     cv2.rectangle(frame, (fx1, fy1), (fx2, fy2), (0, 0, 255), 2)
+            
+    
+        cv2.putText(frame, f'Persons: {persons}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+
+        return frame, persons
+    
+    def send_persons(self):
+        print("Sending persons to all users...")
+        for detection in self.detection_list:
+            self.send_image.emit(detection)
+        print("Persons sent to all users.")
 
     def run(self):
         try:
@@ -268,7 +287,7 @@ class VideoThread(QThread):
             while self._run_flag:
                 ret, frame = cap.read()
                 if ret:
-                    frame, persons = detect_and_count_persons(frame)
+                    frame, persons = self.detect_and_count_persons(frame)
 
                     rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     h, w, ch = rgb_image.shape
@@ -333,6 +352,8 @@ class MainWindow(QWidget):
         if self.thread is None or not self.thread.isRunning():
             self.thread = VideoThread(self.combo , self.camera_checker)
             self.thread.change_pixmap_signal.connect(self.update_image)
+            self.telegram_bot.send_persons_signal.connect(self.thread.send_persons)
+            self.thread.send_image.connect(self.telegram_bot.send_photo_to_admin)
             self.thread.start()
 
     def stop_camera(self):
