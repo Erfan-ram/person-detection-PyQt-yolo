@@ -9,6 +9,12 @@ from PyQt6.QtGui import QPixmap, QImage
 import subprocess
 from PyQt6.QtWidgets import QMessageBox
 
+import asyncio
+from telebot.async_telebot import AsyncTeleBot
+from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
+from Db_handler import DBHelper
+
+
 model_path = 'Model/yolov8n.pt'
 
 if not os.path.exists(model_path):
@@ -40,7 +46,7 @@ def draw_rounded_rectangle(img, top_left, bottom_right, color, thickness, radius
 
 def detect_and_count_persons(frame):
     # results = model(frame)
-    results = model.predict(frame, classes=[0], conf=0.6)
+    results = model.predict(frame, classes=[0],conf=0.2)
     persons = 0
 
     for result in results[0].boxes:
@@ -66,12 +72,15 @@ def detect_and_count_persons(frame):
             cv2.putText(frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
             
             # face_results = fmodel(frame[y1:y2, x1:x2])
-                # cv2.rectangle(frame, (x1 + fx1, y1 + fy1), (x1 + fx2, y1 + fy2), (0, 0, 255), 2)
-            face_results = fmodel(frame)
-            for fresult in face_results[0].boxes:
-                fbox = fresult.xyxy[0].cpu().numpy().astype(int)
-                fx1, fy1, fx2, fy2 = fbox
-                cv2.rectangle(frame, (fx1, fy1), (fx2, fy2), (0, 0, 255), 2)
+            #     cv2.rectangle(frame, (x1 + fx1, y1 + fy1), (x1 + fx2, y1 + fy2), (0, 0, 255), 2)
+            # face_results = fmodel(frame)
+            
+            # face_results = fmodel.predict(frame, conf=0.6)
+            # # face_results = fmodel.predict(frame)
+            # for fresult in face_results[0].boxes:
+            #     fbox = fresult.xyxy[0].cpu().numpy().astype(int)
+            #     fx1, fy1, fx2, fy2 = fbox
+            #     cv2.rectangle(frame, (fx1, fy1), (fx2, fy2), (0, 0, 255), 2)
             
     
     cv2.putText(frame, f'Persons: {persons}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
@@ -95,6 +104,49 @@ def detect_and_count_persons(frame):
     
 #     cv2.putText(frame, f'Persons: {persons}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 #     return frame, persons
+
+class telegrambot:
+    def __init__(self):
+        self.db = DBHelper()
+        self.admin_id = ['250377535']
+
+        self.BOT_TOKEN = '7579055761:AAF5SSfCqPNXA3T4f02jZbquWefnTlMuXiM'
+        # CHANNEL_NAME = '@khabaryub'
+
+        self.bot = AsyncTeleBot(self.BOT_TOKEN)
+        self.setup_handlers()
+
+    def setup_handlers(self):
+        @self.bot.message_handler(commands=['help', 'start'])
+        async def send_welcome(message):
+            text = 'hello babe!'
+            await self.bot.reply_to(message, text)
+
+        @self.bot.message_handler(func=lambda message: True)
+        async def echo_message(message):
+            user_name = message.from_user.first_name
+            user_id = message.from_user.id
+            if self.db.user_exists(user_id):
+                print(f"User {user_name} already exists in the database.")
+            else:
+                self.db.add_user(user_name, user_id)
+                print(f"User {user_name} added to the database.")
+                await self.bot.reply_to(message, message.text)
+                
+        @self.bot.message_handler(func=lambda message: True and message.text == 'sendtext' and message.chat.id in self.admin_id)
+        async def send_text(message):
+            print("Sending message to all users...")
+            await self.send_message_to_all_users()
+                
+        async def send_message_to_all_users():
+            users = self.db.get_all_users()
+            for user in users:
+                user_id = user[0]
+                user_name = user[1]
+                await self.bot.send_message(user_id, f"Hello {user_name}!")
+            
+    def start_(self):
+        asyncio.run(self.bot.polling())
 
 class CameraChecker:
     def __init__(self, combo_obj: QComboBox):
@@ -172,6 +224,8 @@ class VideoThread(QThread):
                 raise ValueError(f"No address found for the selected camera: {option_selected}")
 
             cap = cv2.VideoCapture(address)
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
             cap.set(cv2.CAP_PROP_FPS, 30)
 
             while self._run_flag:
@@ -230,7 +284,10 @@ class MainWindow(QWidget):
         self.thread = None
         self.camera_checker = CameraChecker(self.combo)
         self.camera_checker.start_()
-
+        
+        self.telegram_bot = telegrambot()
+        self.telegram_bot.start_()
+        
     def start_camera(self):
         if self.thread is None or not self.thread.isRunning():
             self.thread = VideoThread(self.combo , self.camera_checker)
