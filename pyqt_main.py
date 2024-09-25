@@ -65,13 +65,16 @@ def draw_rounded_rectangle(img, top_left, bottom_right, color, thickness, radius
 # class TelegramBot(QObject):
 class TelegramBot(QThread):
     send_persons_signal = pyqtSignal()
+    
     def __init__(self):
         super().__init__()
         self.db = DBHelper()
-        self.admin_id = [250377535,0000]
-
+        self.admin_id = [250377535, 0000]
+        
         self.BOT_TOKEN = '7579055761:AAF5SSfCqPNXA3T4f02jZbquWefnTlMuXiM'
         self.bot = AsyncTeleBot(self.BOT_TOKEN)
+        self.loop = None  # We'll store the event loop here
+        
         self.setup_handlers()
 
     def setup_handlers(self):
@@ -80,8 +83,7 @@ class TelegramBot(QThread):
             text = 'Hello, babe!'
             await self.bot.reply_to(message, text)
 
-        # @self.bot.message_handler(func=lambda message: True)
-        @self.bot.message_handler(func=lambda message:int(message.chat.id) not in self.admin_id)
+        @self.bot.message_handler(func=lambda message: int(message.chat.id) not in self.admin_id)
         async def echo_message(message):
             user_name = message.from_user.first_name
             user_id = message.from_user.id
@@ -96,51 +98,66 @@ class TelegramBot(QThread):
         async def send_text(message):
             print("Sending message to all users...")
             await self.send_message_to_all_users()
-            
-        
+
         @self.bot.message_handler(func=lambda message: int(message.from_user.id) in self.admin_id)
         async def handle_admin_command(message):
             if message.text == 'panel':
                 await handle_admin(message)
-        async def handle_admin(message,submenu=False):
+
+        async def handle_admin(message):
             keyboard = InlineKeyboardMarkup()
             keyboard.row_width = 2
             keyboard.add(
                 InlineKeyboardButton("Get photo", callback_data="photo"),
                 InlineKeyboardButton("a key", callback_data="delete_news"),
             )
-
             await self.bot.reply_to(message, 'You are my admin. Choose an action:', reply_markup=keyboard)
         
         @self.bot.callback_query_handler(func=lambda call: True)
         async def callback_query(call):
             if call.data == "photo":
-                # await handle_send_news(call.message)
                 self.send_persons_signal.emit()
-                
-    def send_photo_to_admin(self, numpy_image: numpy.ndarray):
-        # await self.bot.send_photo(self.admin_id[0], numpy_image)
+
+    def run(self):
+        # Create and store the event loop
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        
+        # Start polling the bot in this thread
+        self.loop.run_until_complete(self.bot.polling(none_stop=True))
+    
+    def send_photo_to_admin(self, data):
         print("\n\n\n\nGOT AN IMAGE\n\n\n\n")
         
-        loop = asyncio.get_event_loop()
-        loop.create_task(self.send_message_to_all_users())
-
+        # Schedule the asynchronous task on the event loop
+        if self.loop:
+            asyncio.run_coroutine_threadsafe(self.send_photoo(data), self.loop)
+    
+    async def send_photoo(self, data):
+        print("Sending photo to admin...")
         
+
+        _, buffer = cv2.imencode('.jpg', data[0])
+        
+        photo = buffer.tobytes()
+        await self.bot.send_photo(self.admin_id[0], photo , caption="Person detected!")
+        
+        if len(data) == 2:
+            _, buffer = cv2.imencode('.jpg', data[1])
+            face = buffer.tobytes()
+            await self.bot.send_photo(self.admin_id[0], face, caption="Face detected!")
+        # await self.bot.send_message(self.admin_id[0], "Photo sent to admin.")
+
     async def send_message_to_all_users(self):
         users = self.db.get_all_users()
         print(f"Users: {users}")
         for user in users:
             user_id = user[0]
             chat = await self.bot.get_chat(user_id)
-            # print(f"Chat: {chat.bio}")
             await self.bot.send_message(user_id, f"Hello {chat.first_name} @{chat.username}!")
-            
+        
         await self.bot.send_message(self.admin_id[0], "Message sent to all users.")
 
-    # def start_bot(self):
-    def run(self):
-        """This method will be run in a separate thread."""
-        asyncio.run(self.bot.polling())
 
 # class BotThread(QThread):
 #     def __init__(self, bot_instance):
@@ -210,7 +227,8 @@ class CameraChecker:
 
 class VideoThread(QThread):
     change_pixmap_signal = pyqtSignal(QImage)
-    send_image = pyqtSignal(numpy.ndarray)
+    send_image = pyqtSignal(object)
+    # send_image = pyqtSignal(numpy.ndarray,numpy.ndarray)
 
     def __init__(self, combo_obj: QComboBox, camera_obj: CameraChecker):
         super().__init__()
@@ -233,10 +251,11 @@ class VideoThread(QThread):
                 box = result.xyxy[0].cpu().numpy().astype(int)
                 x1, y1, x2, y2 = box
                 
-                color = (0, 200, 0)
+                color = (0, 150, 0)
                 thickness = 1
-                
-                draw_rounded_rectangle(frame, (x1, y1), (x2, y2), color, thickness, radius=10)
+                cut_frame = frame[y1:y2, x1:x2].copy()
+                self.detection_list.append(cut_frame)
+                draw_rounded_rectangle(frame, (x1, y1), (x2, y2), color, thickness, radius=8)
 
                 label = f'Person: {round(conf, 2)}'
                 label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
@@ -246,7 +265,6 @@ class VideoThread(QThread):
                 label_bg_bottom_right = (x1 + label_w, y1)
                 cv2.rectangle(frame, label_bg_top_left, label_bg_bottom_right, (0, 255, 0), cv2.FILLED)
                 cv2.putText(frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
-                self.detection_list.append(frame[y1:y2, x1:x2])
                 
                 # face_results = fmodel(frame[y1:y2, x1:x2])
                 #     cv2.rectangle(frame, (x1 + fx1, y1 + fy1), (x1 + fx2, y1 + fy2), (0, 0, 255), 2)
@@ -267,7 +285,16 @@ class VideoThread(QThread):
     def send_persons(self):
         print("Sending persons to all users...")
         for detection in self.detection_list:
-            self.send_image.emit(detection)
+            face = None
+            face_results = fmodel.predict(detection, conf=0.6)
+            for fresult in face_results[0].boxes:
+                fbox = fresult.xyxy[0].cpu().numpy().astype(int)
+                fx1, fy1, fx2, fy2 = fbox
+                face = detection[fy1:fy2, fx1:fx2]
+            if face is not None:
+                self.send_image.emit((detection,face))
+            else:
+                self.send_image.emit((detection, ))
         print("Persons sent to all users.")
 
     def run(self):
