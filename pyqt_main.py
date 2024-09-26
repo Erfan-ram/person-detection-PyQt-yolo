@@ -16,6 +16,7 @@ from Db_handler import DBHelper
 
 
 model_path = 'Model/yolov8n.pt'
+cam_flag = False
 
 if not os.path.exists(model_path):
     print("Downloading YOLO model...")
@@ -65,6 +66,8 @@ def draw_rounded_rectangle(img, top_left, bottom_right, color, thickness, radius
 # class TelegramBot(QObject):
 class TelegramBot(QThread):
     send_persons_signal = pyqtSignal()
+    send_start_camera = pyqtSignal()
+    send_stop_camera = pyqtSignal()
     
     def __init__(self):
         super().__init__()
@@ -73,7 +76,7 @@ class TelegramBot(QThread):
         
         self.BOT_TOKEN = '7579055761:AAF5SSfCqPNXA3T4f02jZbquWefnTlMuXiM'
         self.bot = AsyncTeleBot(self.BOT_TOKEN)
-        self.loop = None  # We'll store the event loop here
+        self.loop = None
         
         self.setup_handlers()
 
@@ -109,27 +112,43 @@ class TelegramBot(QThread):
             keyboard.row_width = 2
             keyboard.add(
                 InlineKeyboardButton("Get photo", callback_data="photo"),
-                InlineKeyboardButton("a key", callback_data="delete_news"),
+                InlineKeyboardButton("shutdown", callback_data="shutdown"),
+                InlineKeyboardButton("start camera", callback_data="start_camera"),
+                InlineKeyboardButton("stop camera", callback_data="stop_camera")
             )
             await self.bot.reply_to(message, 'You are my admin. Choose an action:', reply_markup=keyboard)
         
         @self.bot.callback_query_handler(func=lambda call: True)
         async def callback_query(call):
             if call.data == "photo":
-                self.send_persons_signal.emit()
+                if cam_flag:
+                    self.send_persons_signal.emit()
+                else :
+                    await self.bot.send_message(call.message.chat.id, "Please start the camera first.")
+            elif call.data == "shutdown":
+                await self.bot.send_message(call.message.chat.id, "I'm shutting down...")
+                self.loop.stop()
+                subprocess.run(['sudo', 'shutdown', 'now'])
+            elif call.data == "start_camera":
+                if not cam_flag:
+                    self.send_start_camera.emit()
+                else:
+                    await self.bot.send_message(call.message.chat.id, "Camera is already running.")
+            elif call.data == "stop_camera":
+                if cam_flag:
+                    self.send_stop_camera.emit()
+                else:
+                    await self.bot.send_message(call.message.chat.id, "Camera is not running.")
 
     def run(self):
-        # Create and store the event loop
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         
-        # Start polling the bot in this thread
         self.loop.run_until_complete(self.bot.polling(none_stop=True))
     
     def send_photo_to_admin(self, data):
-        print("\n\n\n\nGOT AN IMAGE\n\n\n\n")
+        # print("\n\n\n\nGOT AN IMAGE\n\n\n\n")
         
-        # Schedule the asynchronous task on the event loop
         if self.loop:
             asyncio.run_coroutine_threadsafe(self.send_photoo(data), self.loop)
     
@@ -371,21 +390,28 @@ class MainWindow(QWidget):
 
         self.telegram_bot = TelegramBot()
         self.telegram_bot.start()
+        
+        self.telegram_bot.send_start_camera.connect(self.start_camera)
+        self.telegram_bot.send_stop_camera.connect(self.stop_camera)
 
         # self.bot_thread = BotThread(self.telegram_bot)
         # self.bot_thread.start()
         
     def start_camera(self):
+        global cam_flag
         if self.thread is None or not self.thread.isRunning():
             self.thread = VideoThread(self.combo , self.camera_checker)
             self.thread.change_pixmap_signal.connect(self.update_image)
             self.telegram_bot.send_persons_signal.connect(self.thread.send_persons)
             self.thread.send_image.connect(self.telegram_bot.send_photo_to_admin)
             self.thread.start()
+            cam_flag = True
 
     def stop_camera(self):
+        global cam_flag
         if self.thread is not None:
             self.thread.stop()
+            cam_flag = False
 
     def update_image(self, qt_image):
         self.image_label.setPixmap(QPixmap.fromImage(qt_image))
