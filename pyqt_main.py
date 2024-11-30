@@ -3,8 +3,8 @@ import os
 import sys
 import urllib.request
 from ultralytics import YOLO
-from PyQt6.QtCore import QThread, pyqtSignal, Qt , QTimer , QObject
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel , QComboBox
+from PyQt6.QtCore import QThread, pyqtSignal, Qt , QTimer , QObject , QRect
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel , QComboBox ,QRadioButton ,QCheckBox
 from PyQt6.QtGui import QPixmap, QImage
 import subprocess
 from PyQt6.QtWidgets import QMessageBox
@@ -17,6 +17,8 @@ from Db_handler import DBHelper
 
 model_path = 'Model/yolov8n.pt'
 cam_flag = False
+accuracy_flag = False
+accuracy_c = 0.5
 
 if not os.path.exists(model_path):
     print("Downloading YOLO model...")
@@ -83,7 +85,7 @@ class TelegramBot(QThread):
     def setup_handlers(self):
         @self.bot.message_handler(commands=['help', 'start'])
         async def send_welcome(message):
-            text = 'Hello, babe!'
+            text = 'Hello !'
             await self.bot.reply_to(message, text)
 
         @self.bot.message_handler(func=lambda message: int(message.chat.id) not in self.admin_id)
@@ -104,7 +106,7 @@ class TelegramBot(QThread):
 
         @self.bot.message_handler(func=lambda message: int(message.from_user.id) in self.admin_id)
         async def handle_admin_command(message):
-            if message.text == 'panel':
+            if message.text == '/panel':
                 await handle_admin(message)
 
         async def handle_admin(message):
@@ -126,9 +128,13 @@ class TelegramBot(QThread):
                 else :
                     await self.bot.send_message(call.message.chat.id, "Please start the camera first.")
             elif call.data == "shutdown":
-                await self.bot.send_message(call.message.chat.id, "I'm shutting down...")
+                # await self.bot.send_message(call.message.chat.id, "I'm shutting down...")
+                await self.bot.send_message(call.message.chat.id, "Shutting down the application...")
+                os._exit(0)
                 self.loop.stop()
-                subprocess.run(['sudo', 'shutdown', 'now'])
+                QApplication.quit()
+                # self.loop.stop()
+                # subprocess.run(['sudo', 'shutdown', 'now'])
             elif call.data == "start_camera":
                 if not cam_flag:
                     self.send_start_camera.emit()
@@ -214,11 +220,11 @@ class CameraChecker:
                 for camera in new_cameras.keys():
                     if camera not in self.cameras:
                         # print(f"New camera detected: {camera}")
-                        # msg = QMessageBox()
-                        # msg.setIcon(QMessageBox.Icon.Information)
-                        # msg.setText(f"New camera detected: {camera}")
-                        # msg.setWindowTitle("Camera Detection")
-                        # msg.exec()
+                        msg = QMessageBox()
+                        msg.setIcon(QMessageBox.Icon.Information)
+                        msg.setText(f"New camera detected: {camera}")
+                        msg.setWindowTitle("Camera Detection")
+                        msg.exec()
                         self.combo_obj.addItem(camera)
 
                 for camera in self.cameras.keys():
@@ -258,7 +264,7 @@ class VideoThread(QThread):
     
     def detect_and_count_persons(self,frame):
         # results = model(frame)
-        results = model.predict(frame, classes=[0],conf=0.2)
+        results = model.predict(frame, classes=[0],conf=accuracy_c)
         persons = 0
         self.detection_list = []
 
@@ -282,8 +288,9 @@ class VideoThread(QThread):
                 
                 label_bg_top_left = (x1, y1 - label_h - 10)
                 label_bg_bottom_right = (x1 + label_w, y1)
-                cv2.rectangle(frame, label_bg_top_left, label_bg_bottom_right, (0, 255, 0), cv2.FILLED)
-                cv2.putText(frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
+                if accuracy_flag:
+                    cv2.rectangle(frame, label_bg_top_left, label_bg_bottom_right, (0, 255, 0), cv2.FILLED)
+                    cv2.putText(frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
                 
                 # face_results = fmodel(frame[y1:y2, x1:x2])
                 #     cv2.rectangle(frame, (x1 + fx1, y1 + fy1), (x1 + fx2, y1 + fy2), (0, 0, 255), 2)
@@ -356,33 +363,57 @@ class VideoThread(QThread):
         self._run_flag = False
         # self.wait()
 
-
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
 
         self.setWindowTitle("YOLOv8 - Person Detection")
-        self.setGeometry(100, 100, 800, 600)
+        # self.setGeometry(100, 100, 800, 600)
+        self.setFixedSize(1074,908)
 
-        layout = QVBoxLayout()
+        # layout = QVBoxLayout()
 
         self.image_label = QLabel(self)
-        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.image_label)
+        # self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.image_label.setGeometry(QRect(50, 10, 981, 721))
+        self.image_label.setScaledContents(True)
+        # layout.addWidget(self.image_label)
 
         self.combo = QComboBox(self)
-        layout.addWidget(self.combo)
+        self.combo.setGeometry(QRect(90, 760, 881, 25))
+        # layout.addWidget(self.combo)
 
-        self.start_button = QPushButton("Start Camera")
+        self.start_button = QPushButton("Start Camera",self)
         self.start_button.clicked.connect(self.start_camera)
-        layout.addWidget(self.start_button)
+        self.start_button.setGeometry(QRect(280, 800, 241, 25))
+        self.start_button.setStyleSheet("background-color: green")
+        # layout.addWidget(self.start_button)
 
-        self.stop_button = QPushButton("Stop Camera")
+        self.stop_button = QPushButton("Stop Camera",self)
         self.stop_button.clicked.connect(self.stop_camera)
-        layout.addWidget(self.stop_button)
+        self.stop_button.setGeometry(QRect(570, 800, 241, 25))
+        self.stop_button.setStyleSheet("background-color: red")
+        # layout.addWidget(self.stop_button)
 
-        self.setLayout(layout)
-
+        # self.setLayout(layout)
+        self.radioButton = QRadioButton("0.25",self)
+        self.radioButton.setGeometry(QRect(120, 810, 81, 23))
+        self.radioButton2 = QRadioButton("0.5",self)
+        self.radioButton2.setGeometry(QRect(120, 840, 81, 23))
+        self.radioButton3 = QRadioButton("0.75",self)
+        self.radioButton3.setGeometry(QRect(120, 870, 81, 23))
+        self.label_2 = QLabel("accuracy :",self)
+        self.label_2.setGeometry(QRect(40, 810, 81, 31))
+        self.checkBox = QCheckBox(self)
+        self.checkBox.setGeometry(QRect(60, 840, 21, 23))
+        
+        self.radioButton.toggled.connect(self.onClicked)
+        self.radioButton2.toggled.connect(self.onClicked)
+        self.radioButton3.toggled.connect(self.onClicked)
+        self.checkBox.toggled.connect(self.onClicked)
+        
+        self.checkBox.setChecked(True)
+        self.radioButton2.setChecked(True)
         self.thread = None
         self.camera_checker = CameraChecker(self.combo)
         self.camera_checker.start_()
@@ -396,6 +427,28 @@ class MainWindow(QWidget):
 
         # self.bot_thread = BotThread(self.telegram_bot)
         # self.bot_thread.start()
+        
+    def onClicked(self):
+        global accuracy_flag
+        global accuracy_c
+        
+        radioButton = self.sender()
+        if radioButton.isChecked():
+            if radioButton.text() == "0.25":
+                print(f"{radioButton.text()} is selected")
+                accuracy_c = 0.25
+            elif radioButton.text() == "0.5":
+                print(f"{radioButton.text()} is selected")
+                accuracy_c = 0.5
+            elif radioButton.text() == "0.75":
+                print(f"{radioButton.text()} is selected")
+                accuracy_c = 0.75
+        if self.checkBox.isChecked():
+            print("Face detection is on")
+            accuracy_flag = True
+        else:
+            print("Face detection is off")
+            accuracy_flag = False
         
     def start_camera(self):
         global cam_flag
