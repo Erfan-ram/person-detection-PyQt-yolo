@@ -307,7 +307,7 @@ class VideoThread(QThread):
         cv2.putText(frame, f'Persons: {persons}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
         return frame, persons
-    
+
     def send_persons(self):
         print("Sending persons to all users...")
         for detection in self.detection_list:
