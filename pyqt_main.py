@@ -13,6 +13,8 @@ import asyncio
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 from Db_handler import DBHelper
+from bot_info import tel_bot_token as _TOK
+from bot_info import admin_ids as _ADMINS
 
 
 model_path = 'Model/yolov8n.pt'
@@ -74,10 +76,11 @@ class TelegramBot(QThread):
     def __init__(self):
         super().__init__()
         self.db = DBHelper()
-        self.admin_id = [250377535, 0000]
+        # self.admin_id = [250377535, 0000]
+        self.admin_id = _ADMINS
         
-        self.BOT_TOKEN = '7579055761:AAF5SSfCqPNXA3T4f02jZbquWefnTlMuXiM'
-        self.bot = AsyncTeleBot(self.BOT_TOKEN)
+        # self.BOT_TOKEN = ''
+        self.bot = AsyncTeleBot(_TOK)
         self.loop = None
         
         self.setup_handlers()
