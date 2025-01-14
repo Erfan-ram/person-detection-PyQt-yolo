@@ -152,22 +152,26 @@ class TelegramBot(QThread):
         
         self.loop.run_until_complete(self.bot.polling(none_stop=True))
     
-    def send_photo_to_admin(self, data):
+    def send_photo_to_admin(self, data, text):
         # print("\n\n\n\nGOT AN IMAGE\n\n\n\n")
         
         if self.loop:
-            asyncio.run_coroutine_threadsafe(self.send_photoo(data), self.loop)
+            asyncio.run_coroutine_threadsafe(self.send_photoo(data, text), self.loop)
     
-    async def send_photoo(self, data):
+    async def send_photoo(self, data, text):
         print("Sending photo to admin...")
         
 
         _, buffer = cv2.imencode('.jpg', data[0])
         
         photo = buffer.tobytes()
+        if text == "Noperson":
+            await self.bot.send_photo(self.admin_id[0], photo , caption="No person detected!")
+            return
+            
         await self.bot.send_photo(self.admin_id[0], photo , caption="Person detected!")
         
-        if len(data) == 2:
+        if text == "pandf":
             _, buffer = cv2.imencode('.jpg', data[1])
             face = buffer.tobytes()
             await self.bot.send_photo(self.admin_id[0], face, caption="Face detected!")
@@ -252,12 +256,14 @@ class CameraChecker:
 
 class VideoThread(QThread):
     change_pixmap_signal = pyqtSignal(QImage)
-    send_image = pyqtSignal(object)
+    # send_image = pyqtSignal(object)
+    send_image = pyqtSignal(object, str)
     # send_image = pyqtSignal(numpy.ndarray,numpy.ndarray)
 
     def __init__(self, combo_obj: QComboBox, camera_obj: CameraChecker):
         super().__init__()
         self._run_flag = True
+        self.detected_img = None
         self.combo_obj = combo_obj
         self.camera_obj = camera_obj
         self.detection_list = []
@@ -310,6 +316,11 @@ class VideoThread(QThread):
 
     def send_persons(self):
         print("Sending persons to all users...")
+        
+        if len(self.detection_list) == 0:
+            self.send_image.emit((self.detected_img, ),"Noperson")
+            return
+        
         for detection in self.detection_list:
             face = None
             face_results = fmodel.predict(detection, conf=0.6)
@@ -318,9 +329,9 @@ class VideoThread(QThread):
                 fx1, fy1, fx2, fy2 = fbox
                 face = detection[fy1:fy2, fx1:fx2]
             if face is not None:
-                self.send_image.emit((detection,face))
+                self.send_image.emit((detection,face),"pandf")
             else:
-                self.send_image.emit((detection, ))
+                self.send_image.emit((detection, ),"Noface")
         print("Persons sent to all users.")
 
     def run(self):
@@ -341,7 +352,8 @@ class VideoThread(QThread):
                 ret, frame = cap.read()
                 if ret:
                     frame, persons = self.detect_and_count_persons(frame)
-
+                    
+                    self.detected_img = frame.copy()
                     rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     h, w, ch = rgb_image.shape
                     bytes_per_line = ch * w
