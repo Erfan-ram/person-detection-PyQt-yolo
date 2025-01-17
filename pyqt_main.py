@@ -67,6 +67,11 @@ def draw_rounded_rectangle(img, top_left, bottom_right, color, thickness, radius
 #     cv2.putText(frame, f'Persons: {persons}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 #     return frame, persons
 
+class conn_error(Exception):
+    """Custom exception raised to halt the TG bot procces process."""
+    pass
+
+
 # class TelegramBot(QObject):
 class TelegramBot(QThread):
     send_persons_signal = pyqtSignal()
@@ -82,17 +87,34 @@ class TelegramBot(QThread):
         # self.BOT_TOKEN = ''
         self.bot = AsyncTeleBot(_TOK)
         self.loop = None
-        
+        self.noconn = False
+
         self.Bot_init()
+        self.check_connection()
         self.setup_handlers()
+    
+    def check_connection(self):
+        try:
+            response = urllib.request.urlopen('https://api.telegram.org', timeout=5)
+            if response.status == 200:
+                print("Internet connection is OK.")
+            else:
+                print("Internet connection is not OK.")
+                raise conn_error("Connection failled.")
+            
+        except Exception:
+            print(f"Bot is off ::::Error checking connection to Telegram ")
+            self.noconn = True
+
+            
     
     def Bot_init(self):
         if self.db.is_sametoken(_TOK):
-            print("Token was changed")
+            print("Token is same")
             
         else:
             self.db.replace_token(_TOK)
-            print("Token is replaced")
+            print("new Token is replaced")
 
     def setup_handlers(self):
         @self.bot.message_handler(commands=['help', 'start'])
@@ -145,7 +167,6 @@ class TelegramBot(QThread):
                 os._exit(0)
                 self.loop.stop()
                 QApplication.quit()
-                # self.loop.stop()
                 # subprocess.run(['sudo', 'shutdown', 'now'])
             elif call.data == "start_camera":
                 if not cam_flag:
@@ -159,6 +180,9 @@ class TelegramBot(QThread):
                     await self.bot.send_message(call.message.chat.id, "Camera is not running.")
 
     def run(self):
+        if self.noconn:
+            return
+        
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         
