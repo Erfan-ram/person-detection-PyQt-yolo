@@ -83,7 +83,16 @@ class TelegramBot(QThread):
         self.bot = AsyncTeleBot(_TOK)
         self.loop = None
         
+        self.Bot_init()
         self.setup_handlers()
+    
+    def Bot_init(self):
+        if self.db.is_sametoken(_TOK):
+            print("Token was changed")
+            
+        else:
+            self.db.replace_token(_TOK)
+            print("Token is replaced")
 
     def setup_handlers(self):
         @self.bot.message_handler(commands=['help', 'start'])

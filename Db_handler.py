@@ -15,6 +15,17 @@ class DBHelper:
                      name TEXT,
                       user_id INTEGER)"""
         )
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS bot_tokens
+             (token TEXT PRIMARY KEY)"""
+        )
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS admins
+             (admin_id INTEGER PRIMARY KEY AUTOINCREMENT,
+              admin_name TEXT,
+              admin_user_id INTEGER)"""
+        )
+        
         self.conn.commit()
         
     def get_all_users(self):
@@ -33,4 +44,20 @@ class DBHelper:
     def add_user(self, name, user_id):
         c = self.conn.cursor()
         c.execute("INSERT INTO tgmembers (name, user_id) VALUES (?, ?)", (name, user_id))
+        self.conn.commit()
+        
+    
+    def is_sametoken(self, token):
+        c = self.conn.cursor()
+        lasttoken = c.execute("SELECT token FROM bot_tokens").fetchone()
+        
+        if lasttoken:
+            if token == lasttoken[-1]:
+                return True
+        return False
+    
+    def replace_token(self, token):
+        c = self.conn.cursor()
+        c.execute("DELETE FROM bot_tokens")
+        c.execute("INSERT INTO bot_tokens (token) VALUES (?)", (token,))
         self.conn.commit()
