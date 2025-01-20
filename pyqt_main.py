@@ -442,6 +442,53 @@ class MainWindow(QWidget):
         self.stop_button.setGeometry(QRect(570, 800, 241, 25))
         self.stop_button.setStyleSheet("background-color: red")
         # layout.addWidget(self.stop_button)
+        
+        self.settings_button = QPushButton("Settings", self)
+        self.settings_button.setGeometry(QRect(450, 850, 150, 25))
+        self.settings_button.clicked.connect(self.show_settings_window)
+
+        def show_settings_window(self):
+        self.settings_window = QWidget()
+        self.settings_window.setWindowTitle("Telegram Bot Settings")
+        self.settings_window.setFixedSize(400, 300)
+
+        layout = QVBoxLayout()
+
+        self.token_label = QLabel("Bot Token:", self.settings_window)
+        layout.addWidget(self.token_label)
+
+        self.token_input = QLineEdit(self.settings_window)
+        self.token_input.setText(_TOK)
+        layout.addWidget(self.token_input)
+
+        self.admin_label = QLabel("Admin IDs (comma separated):", self.settings_window)
+        layout.addWidget(self.admin_label)
+
+        self.admin_input = QLineEdit(self.settings_window)
+        self.admin_input.setText(",".join(map(str, _ADMINS)))
+        layout.addWidget(self.admin_input)
+
+        self.save_button = QPushButton("Save", self.settings_window)
+        self.save_button.clicked.connect(self.save_settings)
+        layout.addWidget(self.save_button)
+
+        self.settings_window.setLayout(layout)
+        self.settings_window.show()
+
+        def save_settings(self):
+        new_token = self.token_input.text()
+        new_admins = list(map(int, self.admin_input.text().split(',')))
+
+        # Update the bot token and admin IDs
+        global _TOK, _ADMINS
+        _TOK = new_token
+        _ADMINS = new_admins
+
+        self.telegram_bot.bot = AsyncTeleBot(_TOK)
+        self.telegram_bot.admin_id = _ADMINS
+
+        QMessageBox.information(self, "Settings Saved", "Settings have been updated successfully.")
+        self.settings_window.close()
 
         # self.setLayout(layout)
         self.radioButton = QRadioButton("0.25",self)
