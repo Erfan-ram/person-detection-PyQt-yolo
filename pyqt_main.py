@@ -4,7 +4,7 @@ import sys
 import urllib.request
 from ultralytics import YOLO
 from PyQt6.QtCore import QThread, pyqtSignal, Qt , QTimer , QObject , QRect
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel , QComboBox ,QRadioButton ,QCheckBox
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel , QComboBox ,QRadioButton ,QCheckBox ,QLineEdit
 from PyQt6.QtGui import QPixmap, QImage
 import subprocess
 from PyQt6.QtWidgets import QMessageBox
@@ -77,20 +77,23 @@ class TelegramBot(QThread):
     send_persons_signal = pyqtSignal()
     send_start_camera = pyqtSignal()
     send_stop_camera = pyqtSignal()
+    bot_status = pyqtSignal(str)
     
-    def __init__(self):
+    def __init__(self , databaseOBJ: DBHelper):
         super().__init__()
-        self.db = DBHelper()
-        # self.admin_id = [250377535, 0000]
+        self.db = databaseOBJ
+        
+        self.bot_tok = self.db.get_bot_token()
+        self.bot = AsyncTeleBot(self.bot_tok)
+
         self.admin_id = _ADMINS
         
         # self.BOT_TOKEN = ''
-        self.bot = AsyncTeleBot(_TOK)
         self.loop = None
         self.noconn = False
 
-        self.Bot_init()
-        self.check_connection()
+        # self.Bot_init()
+        # self.check_connection()
         self.setup_handlers()
     
     def check_connection(self):
@@ -98,23 +101,36 @@ class TelegramBot(QThread):
             response = urllib.request.urlopen('https://api.telegram.org', timeout=5)
             if response.status == 200:
                 print("Internet connection is OK.")
+                self.bot_status.emit("on")
             else:
                 print("Internet connection is not OK.")
                 raise conn_error("Connection failled.")
             
         except Exception:
             print(f"Bot is off ::::Error checking connection to Telegram ")
+            self.bot_status.emit("off")
             self.noconn = True
 
             
     
     def Bot_init(self):
-        if self.db.is_sametoken(_TOK):
-            print("Token is same")
+        # alert = ""
+        # msg = QMessageBox()
+        # msg.setIcon(QMessageBox.Icon.Information)
+        
+        # msg.setWindowTitle("Caution")
+
+        # if self.bot_tok is None:
+        #     alert +="You should enter bot token in bot settings.\n"
+        #     self.noconn = True
             
-        else:
-            self.db.replace_token(_TOK)
-            print("new Token is replaced")
+        # if self.db.get_admins() is None:
+        #     alert +="You should enter bot token in bot settings.\n"
+        #     self.noconn = True
+
+        # msg.setText(alert)
+        # msg.exec()
+        pass
 
     def setup_handlers(self):
         @self.bot.message_handler(commands=['help', 'start'])
@@ -180,6 +196,7 @@ class TelegramBot(QThread):
                     await self.bot.send_message(call.message.chat.id, "Camera is not running.")
 
     def run(self):
+        self.check_connection()
         if self.noconn:
             return
         
@@ -414,7 +431,11 @@ class VideoThread(QThread):
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-
+        
+        self.db = DBHelper()
+        self.settings_window = QWidget()
+        self.bot_st = ""
+        
         self.setWindowTitle("YOLOv8 - Person Detection")
         # self.setGeometry(100, 100, 800, 600)
         self.setFixedSize(1074,908)
@@ -443,52 +464,9 @@ class MainWindow(QWidget):
         self.stop_button.setStyleSheet("background-color: red")
         # layout.addWidget(self.stop_button)
         
-        self.settings_button = QPushButton("Settings", self)
+        self.settings_button = QPushButton("Bot Settings", self)
         self.settings_button.setGeometry(QRect(450, 850, 150, 25))
         self.settings_button.clicked.connect(self.show_settings_window)
-
-        def show_settings_window(self):
-        self.settings_window = QWidget()
-        self.settings_window.setWindowTitle("Telegram Bot Settings")
-        self.settings_window.setFixedSize(400, 300)
-
-        layout = QVBoxLayout()
-
-        self.token_label = QLabel("Bot Token:", self.settings_window)
-        layout.addWidget(self.token_label)
-
-        self.token_input = QLineEdit(self.settings_window)
-        self.token_input.setText(_TOK)
-        layout.addWidget(self.token_input)
-
-        self.admin_label = QLabel("Admin IDs (comma separated):", self.settings_window)
-        layout.addWidget(self.admin_label)
-
-        self.admin_input = QLineEdit(self.settings_window)
-        self.admin_input.setText(",".join(map(str, _ADMINS)))
-        layout.addWidget(self.admin_input)
-
-        self.save_button = QPushButton("Save", self.settings_window)
-        self.save_button.clicked.connect(self.save_settings)
-        layout.addWidget(self.save_button)
-
-        self.settings_window.setLayout(layout)
-        self.settings_window.show()
-
-        def save_settings(self):
-        new_token = self.token_input.text()
-        new_admins = list(map(int, self.admin_input.text().split(',')))
-
-        # Update the bot token and admin IDs
-        global _TOK, _ADMINS
-        _TOK = new_token
-        _ADMINS = new_admins
-
-        self.telegram_bot.bot = AsyncTeleBot(_TOK)
-        self.telegram_bot.admin_id = _ADMINS
-
-        QMessageBox.information(self, "Settings Saved", "Settings have been updated successfully.")
-        self.settings_window.close()
 
         # self.setLayout(layout)
         self.radioButton = QRadioButton("0.25",self)
@@ -514,14 +492,15 @@ class MainWindow(QWidget):
         self.camera_checker.start_()
         
 
-        self.telegram_bot = TelegramBot()
-        self.telegram_bot.start()
+        self.telegram_bot = TelegramBot(self.db)
+        # self.telegram_bot.start()
+        QTimer.singleShot(2000, self.telegram_bot.start)
         
+        
+        self.telegram_bot.bot_status.connect(self.set_bot_status)
         self.telegram_bot.send_start_camera.connect(self.start_camera)
         self.telegram_bot.send_stop_camera.connect(self.stop_camera)
 
-        # self.bot_thread = BotThread(self.telegram_bot)
-        # self.bot_thread.start()
         
     def onClicked(self):
         global accuracy_flag
@@ -563,6 +542,78 @@ class MainWindow(QWidget):
 
     def update_image(self, qt_image):
         self.image_label.setPixmap(QPixmap.fromImage(qt_image))
+        
+    def set_bot_status(self, status):
+        self.bot_st = status
+        
+    def show_settings_window(self):
+
+        self.settings_window.setWindowTitle("Telegram Bot Settings")
+        self.settings_window.setFixedSize(550, 300)
+
+        layout = QVBoxLayout()
+
+        self.token_label = QLabel("Bot Token:", self.settings_window)
+        layout.addWidget(self.token_label)
+
+        self.token_input = QLineEdit(self.settings_window)
+        token = self.db.get_bot_token()
+        if token:
+            self.token_input.setText(token)
+        layout.addWidget(self.token_input)
+
+        self.admin_label = QLabel("Admin IDs (comma separated):", self.settings_window)
+        layout.addWidget(self.admin_label)
+
+        self.admin_input = QLineEdit(self.settings_window)
+        cur_admins = self.db.get_admins()
+        # self.admin_input.setText(",".join(map(str, _ADMINS)))
+        print(cur_admins)
+        # self.admin_input.setText(",".join(map(str, _ADMINS)))
+        layout.addWidget(self.admin_input)
+
+        self.save_button = QPushButton("Save", self.settings_window)
+        self.save_button.clicked.connect(self.save_settings)
+        layout.addWidget(self.save_button)
+
+        self.settings_window.setLayout(layout)
+        self.settings_window.show()
+        
+        print(self.bot_st)
+        print(self.bot_st)
+        print(self.bot_st)
+        
+        if token or cur_admins is None:
+            alert = ""
+            msg = QMessageBox(self.settings_window)
+            msg.setIcon(QMessageBox.Icon.Information)
+            
+            msg.setWindowTitle("Caution")
+
+            if token is None:
+                alert +="You should enter bot token.\n"
+                
+            if cur_admins is None:
+                alert +="You should enter admin.\n"
+
+            alert +="After that you neet to restart the application."
+            msg.setText(alert)
+            msg.exec()
+
+    def save_settings(self):
+        new_token = self.token_input.text()
+        new_admins = list(map(int, self.admin_input.text().split(',')))
+
+        # Update the bot token and admin IDs
+        global _TOK, _ADMINS
+        _TOK = new_token
+        _ADMINS = new_admins
+
+        # self.telegram_bot.bot = AsyncTeleBot(_TOK)
+        self.telegram_bot.admin_id = _ADMINS
+
+        QMessageBox.information(self, "Settings Saved", "Settings have been updated successfully.")
+        self.settings_window.close()
 
 
 if __name__ == "__main__":

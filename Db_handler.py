@@ -46,7 +46,13 @@ class DBHelper:
         c.execute("INSERT INTO tgmembers (name, user_id) VALUES (?, ?)", (name, user_id))
         self.conn.commit()
         
-    
+    def get_bot_token(self):
+        c = self.conn.cursor()
+        token = c.execute("SELECT token FROM bot_tokens").fetchone()
+        if token:
+            return token[0]
+        return None
+
     def is_sametoken(self, token):
         c = self.conn.cursor()
         lasttoken = c.execute("SELECT token FROM bot_tokens").fetchone()
@@ -61,3 +67,10 @@ class DBHelper:
         c.execute("DELETE FROM bot_tokens")
         c.execute("INSERT INTO bot_tokens (token) VALUES (?)", (token,))
         self.conn.commit()
+        
+    def get_admins(self):
+        c = self.conn.cursor()
+        admins = c.execute("SELECT admin_user_id FROM admins").fetchall()
+        if admins != []:
+            return admins
+        return None
