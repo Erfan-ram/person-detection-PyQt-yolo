@@ -464,9 +464,6 @@ class MainWindow(QWidget):
         self.stop_button.setStyleSheet("background-color: red")
         # layout.addWidget(self.stop_button)
         
-        self.settings_button = QPushButton("Bot Settings", self)
-        self.settings_button.setGeometry(QRect(450, 850, 150, 25))
-        self.settings_button.clicked.connect(self.show_settings_window)
 
         # self.setLayout(layout)
         self.radioButton = QRadioButton("0.25",self)
@@ -491,6 +488,26 @@ class MainWindow(QWidget):
         self.camera_checker = CameraChecker(self.combo)
         self.camera_checker.start_()
         
+        self.settings_button = QPushButton("Bot Settings", self)
+        self.settings_button.setGeometry(QRect(450, 845, 150, 25))
+        self.settings_button.setDisabled(True)
+        self.settings_button.clicked.connect(self.show_settings_window)
+        
+        self.bot_status_label = QLabel("Bot Status:", self)
+        self.bot_status_label.setGeometry(QRect(350, 880, 150, 25))
+        self.bot_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.bot_status_label.setStyleSheet("font-weight: bold; color: white;")
+        
+        self.status_label = QLabel("Checking...", self)
+        self.status_label.setGeometry(QRect(450, 880, 150, 25))
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status_label.setStyleSheet("font-weight: bold; color: yellow;")
+
+
+        self.status_timer = QTimer(self)
+        self.status_timer.timeout.connect(self.update_status_label)
+        self.status_timer.start(500)
+
 
         self.telegram_bot = TelegramBot(self.db)
         # self.telegram_bot.start()
@@ -500,7 +517,26 @@ class MainWindow(QWidget):
         self.telegram_bot.bot_status.connect(self.set_bot_status)
         self.telegram_bot.send_start_camera.connect(self.start_camera)
         self.telegram_bot.send_stop_camera.connect(self.stop_camera)
+    
+    def update_status_label(self):
+        current_text = self.status_label.text()
+        if current_text.endswith("..."):
+            self.status_label.setText("Checking")
+        else:
+            self.status_label.setText(current_text + ".")
 
+    def set_bot_status(self, status):
+        self.status_timer.stop()
+        self.status_label.setGeometry(QRect(500, 880, 50, 25))
+        self.bot_st = status
+        if status=="on":
+            self.status_label.setText("ON")
+            self.status_label.setStyleSheet("background-color:white ;color: green;font-weight: bold;")
+        else:
+            self.status_label.setText("OFF")
+            self.status_label.setStyleSheet("color: red; background-color:white;font-weight: bold;")
+        
+        self.settings_button.setEnabled(True)
         
     def onClicked(self):
         global accuracy_flag
@@ -543,8 +579,6 @@ class MainWindow(QWidget):
     def update_image(self, qt_image):
         self.image_label.setPixmap(QPixmap.fromImage(qt_image))
         
-    def set_bot_status(self, status):
-        self.bot_st = status
         
     def show_settings_window(self):
 
@@ -579,26 +613,24 @@ class MainWindow(QWidget):
         self.settings_window.setLayout(layout)
         self.settings_window.show()
         
-        print(self.bot_st)
-        print(self.bot_st)
-        print(self.bot_st)
-        
-        if token or cur_admins is None:
-            alert = ""
-            msg = QMessageBox(self.settings_window)
-            msg.setIcon(QMessageBox.Icon.Information)
+        alert = ""
+        msg = QMessageBox(self.settings_window)
+        msg.setIcon(QMessageBox.Icon.Information)
+        msg.setWindowTitle("Caution")
+
+        if self.bot_st == "on":
+            alert += f"connection to trelegram servers succeed\n"
+        else:
+            alert += f"connection to trelegram servers failled\n"
+        if token is None:
+            alert +="You should enter bot token.\n"
             
-            msg.setWindowTitle("Caution")
+        if cur_admins is None:
+            alert +="You should enter admin ids.\n"
 
-            if token is None:
-                alert +="You should enter bot token.\n"
-                
-            if cur_admins is None:
-                alert +="You should enter admin.\n"
-
-            alert +="After that you neet to restart the application."
-            msg.setText(alert)
-            msg.exec()
+        alert +="After that you neet to restart the application.\n"
+        msg.setText(alert)
+        msg.exec()
 
     def save_settings(self):
         new_token = self.token_input.text()
