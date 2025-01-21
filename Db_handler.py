@@ -22,7 +22,6 @@ class DBHelper:
         c.execute(
             """CREATE TABLE IF NOT EXISTS admins
              (admin_id INTEGER PRIMARY KEY AUTOINCREMENT,
-              admin_name TEXT,
               admin_user_id INTEGER)"""
         )
         

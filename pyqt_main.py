@@ -81,22 +81,11 @@ class TelegramBot(QThread):
     
     def __init__(self , databaseOBJ: DBHelper):
         super().__init__()
-        self.db = databaseOBJ
-        
-        self.bot_tok = self.db.get_bot_token()
-        self.bot = AsyncTeleBot(self.bot_tok)
-
-        self.admin_id = _ADMINS
-        
-        # self.BOT_TOKEN = ''
+        self.db = databaseOBJ       
         self.loop = None
         self.noconn = False
-
-        # self.Bot_init()
-        # self.check_connection()
-        self.setup_handlers()
     
-    def check_connection(self):
+    def check_bot_status(self):
         try:
             response = urllib.request.urlopen('https://api.telegram.org', timeout=5)
             if response.status == 200:
@@ -106,31 +95,23 @@ class TelegramBot(QThread):
                 print("Internet connection is not OK.")
                 raise conn_error("Connection failled.")
             
-        except Exception:
-            print(f"Bot is off ::::Error checking connection to Telegram ")
-            self.bot_status.emit("off")
+            __bot_tok = self.db.get_bot_token()
+            if __bot_tok is not None:
+                self.bot = AsyncTeleBot(__bot_tok)
+            else:
+                raise conn_error("Bot token is empty.")
+
+            __admins = self.db.get_admins()
+            if __admins is not None:
+                self.admin_id = __admins
+            else:
+                raise conn_error("Bot admin is empty.")
+  
+        except Exception as e:
+            print(f"Bot is off ::::Error {e} ")
             self.noconn = True
-
-            
-    
-    def Bot_init(self):
-        # alert = ""
-        # msg = QMessageBox()
-        # msg.setIcon(QMessageBox.Icon.Information)
-        
-        # msg.setWindowTitle("Caution")
-
-        # if self.bot_tok is None:
-        #     alert +="You should enter bot token in bot settings.\n"
-        #     self.noconn = True
-            
-        # if self.db.get_admins() is None:
-        #     alert +="You should enter bot token in bot settings.\n"
-        #     self.noconn = True
-
-        # msg.setText(alert)
-        # msg.exec()
-        pass
+            self.bot_status.emit("off")
+            # return
 
     def setup_handlers(self):
         @self.bot.message_handler(commands=['help', 'start'])
@@ -196,10 +177,11 @@ class TelegramBot(QThread):
                     await self.bot.send_message(call.message.chat.id, "Camera is not running.")
 
     def run(self):
-        self.check_connection()
+        self.check_bot_status()
         if self.noconn:
             return
         
+        self.setup_handlers()
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         
@@ -641,7 +623,7 @@ class MainWindow(QWidget):
         _TOK = new_token
         _ADMINS = new_admins
 
-        # self.telegram_bot.bot = AsyncTeleBot(_TOK)
+        self.db.replace_token(new_token)
         self.telegram_bot.admin_id = _ADMINS
 
         QMessageBox.information(self, "Settings Saved", "Settings have been updated successfully.")
