@@ -14,9 +14,6 @@ import asyncio
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 from Db_handler import DBHelper
-from bot_info import tel_bot_token as _TOK
-from bot_info import admin_ids as _ADMINS
-
 
 model_path = 'Model/yolov8n.pt'
 cam_flag = False
