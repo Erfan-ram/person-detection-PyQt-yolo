@@ -1,6 +1,7 @@
 import cv2
 import os
 import sys
+import re
 import urllib.request
 from ultralytics import YOLO
 from PyQt6.QtCore import QThread, pyqtSignal, Qt , QTimer , QObject , QRect
@@ -507,10 +508,11 @@ class MainWindow(QWidget):
         else:
             self.status_label.setText(current_text + ".")
 
-    def set_bot_status(self, status):
+    def set_bot_status(self, status:str):
         self.status_timer.stop()
         self.status_label.setGeometry(QRect(500, 880, 50, 25))
         self.bot_st = status
+        
         if status=="on":
             self.status_label.setText("ON")
             self.status_label.setStyleSheet("background-color:white ;color: green;font-weight: bold;")
@@ -583,9 +585,7 @@ class MainWindow(QWidget):
 
         self.admin_input = QLineEdit(self.settings_window)
         cur_admins = self.db.get_admins()
-        # self.admin_input.setText(",".join(map(str, _ADMINS)))
-        print(cur_admins)
-        # self.admin_input.setText(",".join(map(str, _ADMINS)))
+        self.admin_input.setText(",".join(map(str, cur_admins)))
         layout.addWidget(self.admin_input)
 
         self.save_button = QPushButton("Save", self.settings_window)
@@ -610,23 +610,33 @@ class MainWindow(QWidget):
         if cur_admins is None:
             alert +="You should enter admin ids.\n"
 
-        alert +="After that you neet to restart the application.\n"
         msg.setText(alert)
         msg.exec()
 
     def save_settings(self):
         new_token = self.token_input.text()
+        if len(new_token ) < 10 or not re.match(r'^\d+:[\w-]+$', new_token):
+            QMessageBox.warning(self, "Invalid Token", "The bot token format is invalid.")
+            return
+        
+        if self.admin_input.text() == "":
+            QMessageBox.warning(self, "Invalid Admin IDs", "The admin IDs should be positive integers.")
+            return
         new_admins = list(map(int, self.admin_input.text().split(',')))
+        if not all(map(lambda x: x > 0, new_admins)):
+            QMessageBox.warning(self, "Invalid Admin IDs", "The admin IDs should be positive integers.")
+            return
+        elif len(new_admins) > 3 :
+            QMessageBox.warning(self, "Invalid Admin Length", "You must have maximum 3 admins.")
+            return
+        
+        if not self.db.is_sametoken(new_token):
+            self.db.replace_token(new_token)
+            print("changed not working weelll")
+        self.db.add_new_admins(new_admins)
+        # self.telegram_bot.admin_id = new_admins
 
-        # Update the bot token and admin IDs
-        global _TOK, _ADMINS
-        _TOK = new_token
-        _ADMINS = new_admins
-
-        self.db.replace_token(new_token)
-        self.telegram_bot.admin_id = _ADMINS
-
-        QMessageBox.information(self, "Settings Saved", "Settings have been updated successfully.")
+        QMessageBox.information(self, "Settings Saved", "Settings have been updated successfully. restart the application.")
         self.settings_window.close()
 
 

@@ -71,5 +71,12 @@ class DBHelper:
         c = self.conn.cursor()
         admins = c.execute("SELECT admin_user_id FROM admins").fetchall()
         if admins != []:
-            return admins
+            return [admin[0] for admin in admins]
         return None
+    
+    def add_new_admins(self, admin_user_ids:list):
+        c = self.conn.cursor()
+        c.execute("DELETE FROM admins")
+        for admin_user_id in admin_user_ids:
+            c.execute("INSERT INTO admins (admin_user_id) VALUES (?)", (admin_user_id,))
+        self.conn.commit()
