@@ -9,13 +9,15 @@ A robust desktop application built with PyQt5 that leverages YOLO (You Only Look
 - Video source selection ( webcams )
 - Detection visualization with bounding boxes
 - Detection statistics display
+- Security monitoring
+- Crowd analysis
 - Telegram Bot alart system
 - User-friendly PyQt6 interface
 - Compatible with Raspberry Pi for edge computing applications
 
 ## Technology Stack
 - **Frontend**: PyQt5
-- **Computer Vision**: OpenCV, YOLO v3
+- **Computer Vision**: OpenCV, YOLO v8
 - **Programming Language**: Python
 - **Camera Utilities**: v4l-utils
 
@@ -33,12 +35,5 @@ pip install ultralytics PyQt6 telebot opencv-python
 ```
 
 ## Implementation
-The application is structured around a PyQt6 interface that connects to video sources, processes frames through the YOLO detection model, and displays the results with appropriate visual indicators. The system can process live webcam feeds or pre-recorded video files.
-
-## Use Cases
-- Security monitoring
-- Crowd analysis
-- Footfall tracking
-- Automated surveillance systems
-
+The application is structured around a PyQt6 interface that connects to video sources, processes frames through the YOLO detection model, and displays the results with appropriate visual indicators. The system can process live webcam .
 This project demonstrates the integration of modern deep learning techniques with desktop application development to create practical computer vision solutions.
