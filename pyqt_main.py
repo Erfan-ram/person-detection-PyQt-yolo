@@ -416,7 +416,7 @@ class MainWindow(QWidget):
         self.settings_window = QWidget()
         self.bot_st = ""
         
-        self.setWindowTitle("YOLOv8 - Person Detection")
+        self.setWindowTitle("Person Detector")
         # self.setGeometry(100, 100, 800, 600)
         self.setFixedSize(1074,908)
 
