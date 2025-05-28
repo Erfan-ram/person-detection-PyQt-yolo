@@ -20,6 +20,13 @@ cam_flag = False
 accuracy_flag = False
 accuracy_c = 0.5
 
+model_dir = os.path.dirname(model_path)
+face_model_path = "Model/face_yolov8n.pt"
+
+if not os.path.exists(model_dir):
+    print(f"Creating directory {model_dir}...")
+    os.makedirs(model_dir, exist_ok=True)
+
 if not os.path.exists(model_path):
     print("Downloading YOLO model...")
     url = 'https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8n.pt'
@@ -27,6 +34,14 @@ if not os.path.exists(model_path):
     print("Download complete.")
 else:
     print("Model already exists.")
+
+if not os.path.exists(face_model_path):
+    print("Downloading face detection model...")
+    # face_url = 'https://github.com/ultralytics/assets/releases/download/v8.0/yolov8n-face.pt'
+    # urllib.request.urlretrieve(face_url, face_model_path)
+    print("please contact develop to give you face model.")
+else:
+    print("Face model already exists.")
 
 model = YOLO(model_path)
 fmodel = YOLO("Model/face_yolov8n.pt")
