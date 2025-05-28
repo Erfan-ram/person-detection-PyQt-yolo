@@ -199,16 +199,19 @@ class TelegramBot(QThread):
         
         photo = buffer.tobytes()
         if text == "Noperson":
-            await self.bot.send_photo(self.admin_id[0], photo , caption="No person detected!")
-            return
+            for admin in self.admin_id:
+                await self.bot.send_photo(admin, photo, caption="No person detected!")
+                return
             
-        await self.bot.send_photo(self.admin_id[0], photo , caption="Person detected!")
+        for admin in self.admin_id:
+            await self.bot.send_photo(admin, photo, caption="Person detected!")
         
         if text == "pandf":
             _, buffer = cv2.imencode('.jpg', data[1])
             face = buffer.tobytes()
-            await self.bot.send_photo(self.admin_id[0], face, caption="Face detected!")
-        # await self.bot.send_message(self.admin_id[0], "Photo sent to admin.")
+            for admin in self.admin_id:
+                await self.bot.send_photo(admin, face, caption="Face detected!")
+        await self.bot.send_message(self.admin_id[0], "Photo sent to admin.")
 
     async def send_message_to_all_users(self):
         users = self.db.get_all_users()
@@ -218,7 +221,8 @@ class TelegramBot(QThread):
             chat = await self.bot.get_chat(user_id)
             await self.bot.send_message(user_id, f"Hello {chat.first_name} @{chat.username}!")
         
-        await self.bot.send_message(self.admin_id[0], "Message sent to all users.")
+        for admin in self.admin_id:
+            await self.bot.send_message(admin, "Message sent to all users.")
 
 
 # class BotThread(QThread):
