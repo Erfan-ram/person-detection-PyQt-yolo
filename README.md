@@ -46,12 +46,7 @@ Install the following Python packages using pip:
 pip install ultralytics PyQt6 telebot opencv-python
 ```
 
-## Implementation
-The application is structured around a PyQt6 interface that connects to video sources, processes frames through the YOLO detection model, and displays the results with appropriate visual indicators. The system can process live webcam .
-This project demonstrates the integration of modern deep learning techniques with desktop application development to create practical computer vision solutions.
-
 ## Future Roadmap
-
 ### Planned Features
 - [x] Multiple detection confidence levels (High, Medium, Low)
 - [ ] Add facial recognition capability to identify unique individuals and track their presence over time

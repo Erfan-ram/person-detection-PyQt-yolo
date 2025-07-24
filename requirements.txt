@@ -1,0 +1,11 @@
+# Core dependencies for Person Detection System
+ultralytics>=8.0.0
+PyQt6>=6.0.0
+opencv-python>=4.5.0
+pyTelegramBotAPI>=4.0.0
+numpy>=1.21.0
+
+# Optional dependencies for enhanced functionality
+pillow>=8.0.0
+requests>=2.25.0
+
