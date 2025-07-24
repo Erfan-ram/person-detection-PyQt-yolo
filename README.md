@@ -4,9 +4,23 @@
 A robust desktop application built with PyQt6 that leverages YOLO (You Only Look Once) object detection to identify and track people in video streams. This project combines computer vision capabilities with a user-friendly interface for real-time person detection.
 > Currently works on Unix-based systems, with Windows compatibility planned for future releases.
 
+## Screenshots
+
+<div align="center">
+    <img src="images/1.png" alt="Application Interface" width="600"/>
+    <p><em>Application Interface</em></p>
+</div>
+
+<div align="center">
+    <img src="images/2.png" alt="Person Detection in Action" width="400" style="display: inline-block; margin-right: 10px;"/>
+    <img src="images/3.png" alt="Detection Results" width="400" style="display: inline-block;"/>
+    <br>
+    <p><em>Person Detection in Action &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Detection Results</em></p>
+</div>
+
+
 ## Features
 - [x] Real-time person detection in video streams
-- [x] Multiple detection confidence levels (High, Medium, Low)
 - [x] Video source selection ( webcams )
 - [x] Detection visualization with bounding boxes
 - [x] Security monitoring
@@ -39,14 +53,12 @@ This project demonstrates the integration of modern deep learning techniques wit
 ## Future Roadmap
 
 ### Planned Features
+- [x] Multiple detection confidence levels (High, Medium, Low)
 - [ ] Add facial recognition capability to identify unique individuals and track their presence over time
 - [ ] Generate detailed statistics and reports for each identified person
-- [ ] Full support for Windows operating systems with native camera drivers
+- [ ] Full support for Windows operating systems
 - [ ] Upgrade to newer YOLO versions for improved accuracy and performance
 - [ ] Simultaneous monitoring from multiple camera sources
 - [ ] Backup detection logs and statistics to cloud services
-- [ ] Remote monitoring and alert management through mobile application
 - [ ] Customizable notification rules based on person count, time of day, or specific individuals
-- [ ] Generate PDF reports and export data in various formats (CSV, JSON)
-- [ ] Configurable face blurring and data retention policies
 - [ ] Database integration for persistent storage
