@@ -3,12 +3,12 @@
 import sys
 from PyQt6.QtWidgets import QApplication
 from .ui.main_window import MainWindow
-from .core.models import model_manager
 
 
 def main():
     """Main application entry point."""
-    # Initialize models early
+    # Initialize models when actually needed by UI
+    from .core.models import model_manager
     print("Initializing models...")
     model_manager.initialize()
     

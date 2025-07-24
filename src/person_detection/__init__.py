@@ -8,6 +8,8 @@ Telegram bot integration, and camera management capabilities.
 __version__ = "1.0.0"
 __author__ = "Erfan-ram"
 
-from .main import main
-
-__all__ = ["main"]
+# Don't import main at module level to avoid dependency issues
+def get_main():
+    """Get the main function when needed."""
+    from .main import main
+    return main
