@@ -2,7 +2,6 @@
 
 import cv2
 from ..core.config import Config
-from ..core.models import model_manager
 
 
 def draw_rounded_rectangle(img, top_left, bottom_right, color, thickness, radius=50):
@@ -29,6 +28,14 @@ class PersonDetector:
         self.accuracy_threshold = Config.DEFAULT_ACCURACY
         self.show_accuracy = False
         self.detection_list = []
+        self._model_manager = None
+    
+    def _get_model_manager(self):
+        """Lazy load model manager."""
+        if self._model_manager is None:
+            from ..core.models import model_manager
+            self._model_manager = model_manager
+        return self._model_manager
     
     def set_accuracy_threshold(self, threshold):
         """Set the accuracy threshold for detection."""
@@ -40,6 +47,7 @@ class PersonDetector:
     
     def detect_and_count_persons(self, frame):
         """Detect persons in frame and return annotated frame and count."""
+        model_manager = self._get_model_manager()
         model = model_manager.get_person_model()
         results = model.predict(frame, classes=[Config.PERSON_CLASS_ID], conf=self.accuracy_threshold)
         persons = 0
@@ -77,6 +85,7 @@ class PersonDetector:
         if not self.detection_list:
             return []
         
+        model_manager = self._get_model_manager()
         face_model = model_manager.get_face_model()
         if not face_model:
             return [(detection, None) for detection in self.detection_list]

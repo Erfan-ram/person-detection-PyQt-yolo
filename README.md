@@ -83,13 +83,15 @@ python -m src.person_detection.main
 
 
 ## Features
-- [x] Real-time person detection in video streams
-- [x] Video source selection ( webcams )
-- [x] Detection visualization with bounding boxes
-- [x] Security monitoring
-- [x] Telegram Bot alert system
-- [x] User-friendly PyQt6 interface
-- [x] Compatible with Raspberry Pi for edge computing applications
+- [x] **Real-time person detection** using YOLOv8
+- [x] **Modular architecture** for easy maintenance and extension
+- [x] **Multiple camera support** with automatic detection
+- [x] **Telegram bot integration** for remote monitoring
+- [x] **Configurable accuracy levels** (0.25, 0.5, 0.75)
+- [x] **Face detection** within person bounding boxes
+- [x] **Database management** for users and settings
+- [x] **Professional package structure** following Python best practices
+- [x] **Backward compatibility** with previous versions
 
 ## Technology Stack
 - **GUI**: PyQt6
@@ -106,9 +108,65 @@ This utility is used to identify and configure camera devices in the system.
 ## Dependencies
 All Python dependencies are listed in `requirements.txt` and will be installed automatically with the installation methods above.
 
+## Usage Examples
+
+### Basic Detection
+```python
+from person_detection.detection.detector import PersonDetector
+import cv2
+
+detector = PersonDetector()
+detector.set_accuracy_threshold(0.5)
+
+# Process a frame
+frame = cv2.imread('your_image.jpg')
+annotated_frame, person_count = detector.detect_and_count_persons(frame)
+print(f"Detected {person_count} persons")
+```
+
+### Using as Library
+```python
+from person_detection.core.config import Config
+from person_detection.database.handler import DBHelper
+
+# Access configuration
+print(f"Model path: {Config.MODEL_PATH}")
+
+# Database operations
+db = DBHelper()
+users = db.get_all_users()
+```
+
+## Telegram Bot Setup
+
+1. Create a bot via [@BotFather](https://t.me/botfather)
+2. Get your bot token
+3. Run the application and go to "Bot Settings"
+4. Enter your bot token and admin user IDs
+5. Send `/panel` to your bot to access controls
+
+## Migration from Previous Version
+
+If you were using the old single-file version, see [MIGRATION.md](MIGRATION.md) for detailed migration instructions.
+
+## Development
+
+See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed development guidelines and architecture documentation.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 ## Future Roadmap
 ### Planned Features
-- [x] Multiple detection confidence levels (High, Medium, Low)
 - [ ] Add facial recognition capability to identify unique individuals and track their presence over time
 - [ ] Generate detailed statistics and reports for each identified person
 - [ ] Full support for Windows operating systems
@@ -116,4 +174,5 @@ All Python dependencies are listed in `requirements.txt` and will be installed a
 - [ ] Simultaneous monitoring from multiple camera sources
 - [ ] Backup detection logs and statistics to cloud services
 - [ ] Customizable notification rules based on person count, time of day, or specific individuals
-- [ ] Database integration for persistent storage
+- [ ] Docker containerization support
+- [ ] REST API for integration with other systems

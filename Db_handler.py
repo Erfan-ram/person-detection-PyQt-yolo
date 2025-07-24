@@ -1,5 +1,8 @@
 import sqlite3
 
+# DEPRECATED: This file has been moved to src/person_detection/database/handler.py
+# The new modular structure provides the same functionality with better organization.
+# Please see MIGRATION.md for migration instructions.
 
 class DBHelper:
     def __init__(self) -> None:
