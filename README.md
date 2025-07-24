@@ -1,22 +1,21 @@
 # Person Detection System with PyQt and YOLO
 
 ## Overview
-A robust desktop application built with PyQt5 that leverages YOLO (You Only Look Once) object detection to identify and track people in video streams. This project combines computer vision capabilities with a user-friendly interface for real-time person detection.
+A robust desktop application built with PyQt6 that leverages YOLO (You Only Look Once) object detection to identify and track people in video streams. This project combines computer vision capabilities with a user-friendly interface for real-time person detection.
+> Currently works on Unix-based systems, with Windows compatibility planned for future releases.
 
 ## Features
 - Real-time person detection in video streams
 - Multiple detection confidence levels (High, Medium, Low)
 - Video source selection ( webcams )
 - Detection visualization with bounding boxes
-- Detection statistics display
 - Security monitoring
-- Crowd analysis
-- Telegram Bot alart system
+- Telegram Bot alert system
 - User-friendly PyQt6 interface
 - Compatible with Raspberry Pi for edge computing applications
 
 ## Technology Stack
-- **Frontend**: PyQt5
+- **Frontend**: PyQt6
 - **Computer Vision**: OpenCV, YOLO v8
 - **Programming Language**: Python
 - **Camera Utilities**: v4l-utils
