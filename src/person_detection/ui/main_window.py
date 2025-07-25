@@ -170,8 +170,9 @@ class MainWindow(QWidget):
                 return
                 
             # Update thread settings if running
-            if self.thread and self.thread.isRunning():
-                self.thread.set_accuracy_threshold(accuracy)
+            if self.thread is not None and isinstance(self.thread, VideoThread):
+                if self.thread.isRunning():
+                    self.thread.set_accuracy_threshold(accuracy)
         
         # Handle face detection checkbox
         if self.checkBox.isChecked():
@@ -182,8 +183,9 @@ class MainWindow(QWidget):
             show_accuracy = False
             
         # Update thread settings if running
-        if self.thread and self.thread.isRunning():
-            self.thread.set_show_accuracy(show_accuracy)
+        if self.thread is not None and isinstance(self.thread, VideoThread):
+            if self.thread.isRunning():
+                self.thread.set_show_accuracy(show_accuracy)
         
     def start_camera(self):
         """Start the camera and video processing."""
