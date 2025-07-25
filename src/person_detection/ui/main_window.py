@@ -10,6 +10,7 @@ from ..detection.camera import CameraChecker
 from ..telegram.bot import TelegramBot
 from ..database.handler import DBHelper
 from ..core.config import Config
+from typing import Optional
 
 
 class MainWindow(QWidget):
@@ -59,7 +60,9 @@ class MainWindow(QWidget):
         self._setup_bot_controls()
 
         # Initialize camera checker
-        self.thread = None
+        self.thread: Optional[VideoThread] = None
+        # self.thread: VideoThread | None = None
+        # self.thread = None
         self.camera_checker = CameraChecker(self.combo)
         self.camera_checker.start()
         
