@@ -5,6 +5,16 @@ A robust desktop application built with PyQt6 that leverages YOLO object detecti
 
 > Currently works on Unix-based systems, with Windows compatibility planned for future releases.
 
+## 📜 Legacy Version Available
+
+**Looking for the original single-file version?** The legacy monolithic implementation (663-line `pyqt_main.py`) is preserved on the `old-code` branch for reference and backward compatibility.
+
+```bash
+git checkout old-code  # Access legacy version
+```
+
+The current main branch features a modern, modular architecture that's easier to maintain and extend.
+
 ## Screenshots
 
 <div align="center">
@@ -149,7 +159,23 @@ users = db.get_all_users()
 
 ## Migration from Previous Version
 
-If you were using the old single-file version, see [MIGRATION.md](MIGRATION.md) for detailed migration instructions.
+If you were using the old single-file version (`pyqt_main.py`), it has been moved to the `old-code` branch. The current version provides the same functionality with better organization:
+
+### Quick Migration
+```bash
+# Switch to modern version (main branch)
+git checkout main
+pip install -e .
+person-detection  # Same functionality, better structure
+```
+
+### Accessing Legacy Code
+```bash
+git checkout old-code  # Access original pyqt_main.py
+python pyqt_main.py   # Run legacy version
+```
+
+For detailed migration instructions, see [MIGRATION.md](MIGRATION.md).
 
 ## Development
 
