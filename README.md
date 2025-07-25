@@ -5,6 +5,21 @@ A robust desktop application built with PyQt6 that leverages YOLO object detecti
 
 > Currently works on Unix-based systems, with Windows compatibility planned for future releases.
 
+## Screenshots
+
+<div align="center">
+    <img src="images/1.png" alt="Application Interface" width="600"/>
+    <p><em>Person Detection in Action</em></p>
+</div>
+
+<div align="center">
+    <img src="images/2.png" alt="Person Detection in Action" width="400" style="display: inline-block; margin-right: 10px;"/>
+    <img src="images/3.png" alt="Detection Results" width="400" style="display: inline-block;"/>
+    <br>
+    <p><em>Application Interface &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Detection Results on Telegram</em></p>
+</div>
+
+
 ## Project Structure
 
 The project follows a modular Python package structure for better maintainability and extensibility:
@@ -55,7 +70,7 @@ pip install -e .
 person-detection
 ```
 
-### Method 2: Run Directly
+### Method 2: Run Directly (without package installation)
 ```bash
 # After cloning and installing dependencies
 python run.py
@@ -66,20 +81,6 @@ python run.py
 # From the project root
 python -m src.person_detection.main
 ```
-
-## Screenshots
-
-<div align="center">
-    <img src="images/1.png" alt="Application Interface" width="600"/>
-    <p><em>Person Detection in Action</em></p>
-</div>
-
-<div align="center">
-    <img src="images/2.png" alt="Person Detection in Action" width="400" style="display: inline-block; margin-right: 10px;"/>
-    <img src="images/3.png" alt="Detection Results" width="400" style="display: inline-block;"/>
-    <br>
-    <p><em>Application Interface &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Detection Results on Telegram</em></p>
-</div>
 
 
 ## Features
@@ -143,7 +144,8 @@ users = db.get_all_users()
 2. Get your bot token
 3. Run the application and go to "Bot Settings"
 4. Enter your bot token and admin user IDs
-5. Send `/panel` to your bot to access controls
+5. Restart the application to apply changes
+6. Send `/panel` to your bot to access controls
 
 ## Migration from Previous Version
 
@@ -175,4 +177,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Backup detection logs and statistics to cloud services
 - [ ] Customizable notification rules based on person count, time of day, or specific individuals
 - [ ] Docker containerization support
-- [ ] REST API for integration with other systems
+- [ ] REST API for integration with other systems ( not knowing how to do this yet )
