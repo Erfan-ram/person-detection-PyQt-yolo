@@ -110,35 +110,6 @@ This utility is used to identify and configure camera devices in the system.
 ## Dependencies
 All Python dependencies are listed in `requirements.txt` and will be installed automatically with the installation methods above.
 
-## Usage Examples
-
-### Basic Detection
-```python
-from person_detection.detection.detector import PersonDetector
-import cv2
-
-detector = PersonDetector()
-detector.set_accuracy_threshold(0.5)
-
-# Process a frame
-frame = cv2.imread('your_image.jpg')
-annotated_frame, person_count = detector.detect_and_count_persons(frame)
-print(f"Detected {person_count} persons")
-```
-
-### Using as Library
-```python
-from person_detection.core.config import Config
-from person_detection.database.handler import DBHelper
-
-# Access configuration
-print(f"Model path: {Config.MODEL_PATH}")
-
-# Database operations
-db = DBHelper()
-users = db.get_all_users()
-```
-
 ## Telegram Bot Setup
 
 1. Create a bot via [@BotFather](https://t.me/botfather)
