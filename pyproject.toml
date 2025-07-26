@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "person-detection-pyqt-yolo"
+version = "1.0.0"
+authors = [
+    {name = "Erfan-ram"}
+]
+description = "A robust desktop application for real-time person detection using PyQt6 and YOLO"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Multimedia :: Video :: Capture",
+]
+dependencies = [
+    "ultralytics>=8.0.0",
+    "PyQt6>=6.0.0",
+    "opencv-python>=4.5.0",
+    "pyTelegramBotAPI>=4.0.0",
+    "numpy>=1.21.0",
+    "pillow>=8.0.0",
+    "requests>=2.25.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Erfan-ram/person-detection-PyQt-yolo"
+Repository = "https://github.com/Erfan-ram/person-detection-PyQt-yolo"
+Issues = "https://github.com/Erfan-ram/person-detection-PyQt-yolo/issues"
+
+[project.scripts]
+person-detection = "person_detection.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+person_detection = ["*.md"]
