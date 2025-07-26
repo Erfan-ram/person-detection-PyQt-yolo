@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "person-detection-pyqt-yolo"
 version = "1.0.0"
 authors = [
-    {name = "Erfan-ram"}
+    {name = "Erfan-ram", email = "Erfanramezany245@gmail.com"}
 ]
 description = "A robust desktop application for real-time person detection using PyQt6 and YOLO"
 readme = "README.md"
@@ -40,6 +40,7 @@ dependencies = [
 Homepage = "https://github.com/Erfan-ram/person-detection-PyQt-yolo"
 Repository = "https://github.com/Erfan-ram/person-detection-PyQt-yolo"
 Issues = "https://github.com/Erfan-ram/person-detection-PyQt-yolo/issues"
+Documentation = "https://github.com/Erfan-ram/person-detection-PyQt-yolo#readme"
 
 [project.scripts]
 person-detection = "person_detection.main:main"
