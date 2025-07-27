@@ -132,7 +132,11 @@ class TelegramBot(QThread):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         
-        self.loop.run_until_complete(self.bot.polling(none_stop=True))
+        try:
+            self.loop.run_until_complete(self.bot.polling(none_stop=True))
+        except Exception as e:
+            print(f"Maybe bot token needs to reset API webhook or token invalid: {e}")
+            self.bot_status.emit("off")
     
     def send_photo_to_admin(self, data, text):
         """Send photo to admin users."""
