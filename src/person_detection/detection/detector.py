@@ -49,7 +49,8 @@ class PersonDetector:
         """Detect persons in frame and return annotated frame and count."""
         model_manager = self._get_model_manager()
         model = model_manager.get_person_model()
-        results = model.predict(frame, classes=[Config.PERSON_CLASS_ID], conf=self.accuracy_threshold)
+        # results = model.predict(frame, classes=[Config.PERSON_CLASS_ID], conf=self.accuracy_threshold)
+        results = model.predict(frame, classes=[Config.PERSON_CLASS_ID], conf=self.accuracy_threshold, verbose=False)
         persons = 0
         self.detection_list = []
 
