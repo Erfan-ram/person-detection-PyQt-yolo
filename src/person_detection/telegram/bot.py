@@ -137,6 +137,9 @@ class TelegramBot(QThread):
         except Exception as e:
             print(f"Maybe bot token needs to reset API webhook or token invalid: {e}")
             self.bot_status.emit("off")
+            self.loop.run_until_complete(self.bot.close_session())
+            if self.loop and not self.loop.is_closed():
+                self.loop.close()
     
     def send_photo_to_admin(self, data, text):
         """Send photo to admin users."""
