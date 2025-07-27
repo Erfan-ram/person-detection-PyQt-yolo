@@ -239,7 +239,7 @@ class MainWindow(QWidget):
             self.token_input.setText(token)
         layout.addWidget(self.token_input)
 
-        self.admin_label = QLabel("Admin IDs (comma separated):", self.settings_window)
+        self.admin_label = QLabel("Admin IDs (comma separated| max 3):", self.settings_window)
         layout.addWidget(self.admin_label)
 
         self.admin_input = QLineEdit(self.settings_window)
